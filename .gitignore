@@ -1,0 +1,4 @@
+.session
+.zig-cache/
+zig-out/
+input/
