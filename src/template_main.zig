@@ -1,4 +1,4 @@
-// Advent of code 23 - day DAY
+// Advent of code 25 - day DAY
 const std = @import("std");
 const aoc = @import("aoc");
 
@@ -20,21 +20,9 @@ pub fn main() !void {
 }
 
 test "Day DAY part 1" {
-    const EXAMPLE1 =
-        \\TODO
-    ;
-    const PART1: u64 = 42;
-
-    const scores = try aoc.run_test(run, EXAMPLE1);
-    try std.testing.expectEqual(PART1, scores[0]);
+    try aoc.run_tests(run, DAY, 1);
 }
 
 test "Day DAY part 2" {
-    const EXAMPLE2 =
-        \\TODO
-    ;
-    const PART2: u64 = 42;
-
-    const scores = try aoc.run_test(run, EXAMPLE2);
-    try std.testing.expectEqual(PART2, scores[1]);
+    try aoc.run_tests(run, DAY, 2);
 }

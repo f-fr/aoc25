@@ -295,10 +295,51 @@ pub fn run(name: []const u8, comptime runfn: anytype) !void {
     println("Time  : {d:.3}", .{@as(f64, @floatFromInt(t_end)) / 1e9});
 }
 
-pub fn run_test(runfunc: anytype, input: []const u8) ![2]u64 {
-    var reader = std.Io.Reader.fixed(input);
-    var lines = Lines.init(&reader);
-    return runfunc(&lines);
+fn run_test(runfunc: anytype, reader: *std.Io.Reader, part: u8) !void {
+    std.debug.assert(part >= 1 and part <= 2);
+
+    var lines = Lines.init(reader);
+    const expected_line = try lines.next() orelse return error.MissingExpectedLine;
+
+    if (!std.mem.startsWith(u8, expected_line, "EXPECTED:")) return error.InvalidExpectedLine;
+
+    var toks = std.mem.tokenizeAny(u8, expected_line[9..], " \t");
+    const expected_score1_str = toks.next() orelse return error.MissingExpectedValue;
+    const expected_score2_str = toks.next();
+
+    const expected_score1 = try std.fmt.parseInt(u64, expected_score1_str, 10);
+    const expected_score2 = if (expected_score2_str) |s| try std.fmt.parseInt(u64, s, 10) else expected_score1;
+    const expected_scores = [2]u64{ expected_score1, expected_score2 };
+
+    const scores = try runfunc(&lines);
+
+    return std.testing.expectEqual(expected_scores[part - 1], scores[part - 1]);
+}
+
+pub fn run_tests(runfunc: anytype, day: u8, part: u8) !void {
+    const io = std.testing.io;
+
+    var buffer: [1024]u8 = undefined;
+    const path = try std.fmt.bufPrint(&buffer, "input/{:02}", .{day});
+
+    var dir = try std.fs.cwd().openDir(path, .{ .iterate = true });
+    defer dir.close();
+    var dir_it = dir.iterate();
+    while (try dir_it.next()) |d| {
+        if (std.mem.startsWith(u8, d.name, "test") and std.mem.endsWith(u8, d.name, ".txt")) {
+            if (std.mem.startsWith(u8, d.name[4..], "_part")) {
+                const end = if (std.mem.findAny(u8, d.name[9..], "_.")) |i| i + 9 else d.name.len;
+                const p = try std.fmt.parseInt(u32, d.name[9..end], 10);
+                // test case is not for this part -> skip
+                if (p != part) continue;
+            }
+            // run this test case
+            var file = try dir.openFile(d.name, .{ .mode = .read_only });
+            defer file.close();
+            var reader = file.reader(io, &buffer);
+            try run_test(runfunc, &reader.interface, part);
+        }
+    }
 }
 
 pub const info = std.log.info;
