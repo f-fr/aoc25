@@ -167,7 +167,7 @@ pub fn build(b: *std.Build) !void {
         \\        var lines = aoc.Lines.init(&reader.interface);
         \\
         \\        timer.reset();
-        \\        const s = try day.run(&lines);
+        \\        const s = try day.run(aoc.allocator, &lines);
         \\        const t_end = timer.lap();
         \\        const t = @as(f64, @floatFromInt(t_end)) / 1e9;
         \\        if (cur_day != day.day) {

@@ -288,7 +288,7 @@ pub fn run(name: []const u8, comptime runfn: anytype) !void {
     var reader = file.reader(io.io(), &buffer);
     var lines = Lines.init(&reader.interface);
     var timer = try std.time.Timer.start();
-    const scores = try runfn(&lines);
+    const scores = try runfn(allocator, &lines);
     const t_end = timer.lap();
 
     println("Part 1: {}", .{scores[0]});
@@ -312,7 +312,7 @@ fn run_test(runfunc: anytype, reader: *std.Io.Reader, part: u8) !void {
     const expected_score2 = if (expected_score2_str) |s| try std.fmt.parseInt(u64, s, 10) else expected_score1;
     const expected_scores = [2]u64{ expected_score1, expected_score2 };
 
-    const scores = try runfunc(&lines);
+    const scores = try runfunc(testing.allocator, &lines);
 
     return std.testing.expectEqual(expected_scores[part - 1], scores[part - 1]);
 }

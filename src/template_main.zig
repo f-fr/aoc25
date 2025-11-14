@@ -2,8 +2,8 @@
 const std = @import("std");
 const aoc = @import("aoc");
 
-pub fn run(lines: *aoc.Lines) ![2]u64 {
-    var arena = std.heap.ArenaAllocator.init(aoc.allocator);
+pub fn run(alloc: std.mem.Allocator, lines: *aoc.Lines) ![2]u64 {
+    var arena = std.heap.ArenaAllocator.init(alloc);
     defer arena.deinit();
     const a = arena.allocator();
 
