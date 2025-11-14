@@ -16,7 +16,9 @@ pub fn run(alloc: std.mem.Allocator, lines: *aoc.Lines) ![2]u64 {
 }
 
 pub fn main() !void {
-    return aoc.run("DAY", run);
+    var buffer: [2]u8 = undefined;
+    const name = try std.fmt.bufPrint(buffer, "{:02}", .{DAY});
+    return aoc.run(name, run);
 }
 
 test "Day DAY part 1" {

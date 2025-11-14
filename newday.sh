@@ -8,7 +8,7 @@ SESSIONCOOKIE=$(cat .session)
 
 mkdir "src/$day"
 cp -i "src/template_main.zig" "src/$day/main.zig"
-sed -i -e "s/DAY/$day/" "src/$day/main.zig"
+sed -i -e "s/DAY/$1/" "src/$day/main.zig"
 hg add "src/$day/main.zig"
 
 mkdir -p "input/$day"
