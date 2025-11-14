@@ -6,6 +6,7 @@ pub const GenArray = @import("./genary.zig").GenArray;
 pub const Search = search.Search;
 pub const SearchWithSeen = search.SearchWithSeen;
 pub const PriQueue = @import("./priqueue.zig");
+pub const NamesBag = @import("./namesbag.zig").NamesBag;
 
 //pub var allocator_instance = std.heap.GeneralPurposeAllocator(.{}){};
 // 1.5 MiB of memory for dynamic allocation
