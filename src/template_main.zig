@@ -7,6 +7,8 @@ pub fn run(alloc: std.mem.Allocator, lines: *aoc.Lines) ![2]u64 {
     defer arena.deinit();
     const a = arena.allocator();
 
+    _ = a;
+
     while (try lines.next()) |line| {
         _ = line;
         // TODO
@@ -17,7 +19,7 @@ pub fn run(alloc: std.mem.Allocator, lines: *aoc.Lines) ![2]u64 {
 
 pub fn main() !void {
     var buffer: [2]u8 = undefined;
-    const name = try std.fmt.bufPrint(buffer, "{:02}", .{DAY});
+    const name = try std.fmt.bufPrint(&buffer, "{:02}", .{DAY});
     return aoc.run(name, run);
 }
 
