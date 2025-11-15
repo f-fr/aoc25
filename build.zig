@@ -15,6 +15,20 @@ pub fn build(b: *std.Build) !void {
     // set a preferred release mode, allowing the user to decide how to optimize.
     const optimize = b.standardOptimizeOption(.{});
 
+    const mod_newday_exe = b.addModule("newday", .{
+        .root_source_file = b.path("src/newday.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    const newday_exe = b.addExecutable(.{ .name = "newday", .root_module = mod_newday_exe });
+
+    const newday_inst = b.addInstallArtifact(newday_exe, .{});
+    b.getInstallStep().dependOn(&newday_inst.step);
+    const newday_cmd = b.addRunArtifact(newday_exe);
+    newday_cmd.step.dependOn(&newday_inst.step);
+    const newday_step = b.step("newday", "Prepare everything for a new day");
+    newday_step.dependOn(&newday_cmd.step);
+
     const aoc = b.createModule(.{ .root_source_file = b.path("src/aoc.zig") });
 
     const mod_unit_tests = b.addModule("test_aoc", .{
