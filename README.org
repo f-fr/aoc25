@@ -1,35 +1,47 @@
+#+LATEX_COMPILER: lualatex
+#+LATEX_HEADER: \usepackage{fontspec}
+#+LATEX_HEADER: \setmainfont{Noto Serif}
+# #+LATEX_HEADER: \usepackage[left=1cm, right=1cm, top=2cm, bottom=2cm]{geometry}
+#+LATEX_HEADER: \setminted{bgcolor=black!5!white}
+
 #+TITLE: Advent of Code 2025
 #+AUTHOR: f-fr
 #+EMAIL:
+#+LANGUAGE: en
+#+OPTIONS: toc:nil
+
+* Advent of Code 2025
 
 My solution, this time in [[https://ziglang.org][Zig]]. My personal goal is to keep the running
 time for each day well below 0.1s (on my Raspberry Pi 2).
 
-* Creating templates for new days
+** Creating templates for new days
 
 There is a helper tool to create empty files for each day:
 
-    ./zig-out/bin/newday XX
+#+BEGIN_EXAMPLE sh
+./zig-out/bin/newday XX
+#+END_EXAMPLE
     
-where XX is a number 1, 2, ... creates a new unit `DayXX` (in file
-`src/dayXX.pas`) along with empty test inputs
-`input/XX/test_part1.txt` and `input/XX/test_part2.txt`. Furthermore,
+where XX is a number 1, 2, ... creates a new unit ~DayXX~ (in file
+~src/dayXX.pas~) along with empty test inputs
+~input/XX/test_part1.txt~ and ~input/XX/test_part2.txt~. Furthermore,
 the script downloads the instance file from the
 [[https://adventofcode.com][Advent-of-Code]]-website. However, this works only if there is a
-`.session` file in the root directory of the project (not contained in
+~.session~ file in the root directory of the project (not contained in
 the repository) that contains a valid session-key.
 
 The script also registers the new file in [[https://www.jj-vcs.dev][Jujutsu]] (sorry, I
 don't use git directly).
 
-* Compiling
+** Compiling
 
 Just run
 #+BEGIN_EXAMPLE sh
 zig build
 #+END_EXAMPLE
 
-* Running the days
+** Running the days
 
 For each day there is single executable, e.g.
 #+BEGIN_EXAMPLE sh
@@ -40,14 +52,14 @@ Alternatively, each day can be run directly via the zig build script
 zig build run01
 #+END_EXAMPLE
     
-* Running the tests
+** Running the tests
 
 All tests can be run using
 #+BEGIN_EXAMPLE sh
 zig build test --summary all
 #+END_EXAMPLE
     
-* Running all times tests
+** Running all timing tests
 
 All solutions for all days can be run using
 
@@ -58,14 +70,8 @@ zig build times --release=fast
 ** Results
 
 #+TBLNAME: times-i7
-
-#+begin_src sh
-  zig build times --release=fast
-#+end_src
-
-#+RESULTS:
-:results:
-:end:
+#+CAPTION: AMD Ryzen 5 Pro 7530U
+#+INCLUDE: "times.tbl"
 
 # Local Variables:
 # jinx-languages: "en_US"

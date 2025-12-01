@@ -344,6 +344,21 @@ pub fn run_tests(runfunc: anytype, day: u8, part: u8) !void {
 }
 
 pub fn run_times(comptime days: anytype) !void {
+    var args = std.process.args();
+    const program = args.next() orelse return error.MissingFilename; // skip the program name
+    while (args.next()) |arg| {
+        if (std.mem.eql(u8, arg, "--json") or std.mem.eql(u8, arg, "-j")) {
+            return try run_times_json(days);
+        } else if (std.mem.eql(u8, arg, "--org") or std.mem.eql(u8, arg, "-o")) {
+            return try run_times_org(days);
+        } else {
+            return std.debug.print("Usage: {s} [-j|--json]\n", .{std.fs.path.basename(program)});
+        }
+    }
+    try run_times_txt(days);
+}
+
+fn run_times_txt(comptime days: anytype) !void {
     var t_total: f64 = 0;
     var t_day: f64 = 0;
     var cur_day: usize = 0;
@@ -375,7 +390,7 @@ pub fn run_times(comptime days: anytype) !void {
     println("Total time (best versions): {d:.3}", .{t_total});
 }
 
-pub fn run_times_json(comptime days: anytype) !void {
+fn run_times_json(comptime days: anytype) !void {
     var t_total: f64 = 0;
     var t_day: f64 = 0;
     var cur_day: usize = 0;
@@ -411,15 +426,64 @@ pub fn run_times_json(comptime days: anytype) !void {
 
     const table = .{ .times = result, .total = t_total };
     const fmt = std.json.fmt(table, .{ .emit_null_optional_fields = false });
-    var buf: [4096]u8 = undefined;
-    var stdout = std.fs.File.stdout().writer(&buf);
-    try fmt.format(&stdout.interface);
-    try stdout.interface.flush();
+    var stdout_buffer: [256]u8 = undefined;
+    var stdout = std.fs.File.stdout();
+    var stdout_writer = stdout.writer(&stdout_buffer);
+    try fmt.format(&stdout_writer.interface);
+    try stdout_writer.interface.flush();
+}
+
+fn run_times_org(comptime days: anytype) !void {
+    var t_total: f64 = 0;
+    var t_day: f64 = 0;
+    var cur_day: usize = 0;
+    var timer = try std.time.Timer.start();
+    var buffer: [4096]u8 = undefined;
+    var io: std.Io.Threaded = std.Io.Threaded.init_single_threaded;
+
+    println("| day | version | part1      | part2      | time    |", .{});
+    println("|-----+---------+------------+------------+---------|", .{});
+
+    inline for (days) |day| {
+        var file = try std.fs.cwd().openFile(day.filename, .{ .mode = .read_only });
+        defer file.close();
+        var reader = file.reader(io.io(), &buffer);
+        var lines = Lines.init(&reader.interface);
+
+        timer.reset();
+        const s = try day.run(allocator, &lines);
+        const t_end = timer.lap();
+        const t = @as(f64, @floatFromInt(t_end)) / 1e9;
+        if (cur_day != day.day) {
+            t_total += t_day;
+            t_day = t;
+        } else t_day = @min(t_day, t);
+        cur_day = day.day;
+
+        println("| {d:3} | {s:7} | {d:10} | {d:10} | {d:7.2} |", .{ day.day, day.version, s[0], s[1], t });
+    }
+    t_total += t_day; // last day
+    println("Total time (best versions): {d:.3}", .{t_total});
 }
 
 pub const info = std.log.info;
 
-pub const print = std.debug.print;
+pub fn print(comptime format: []const u8, args: anytype) void {
+    var stdout_buffer: [256]u8 = undefined;
+    var stdout_writer = std.fs.File.stdout().writer(&stdout_buffer);
+    stdout_writer.file.lock(.exclusive) catch |err| {
+        std.debug.print("Error acquiring lock to stdout: {any}\n", .{err});
+    };
+    defer stdout_writer.file.unlock();
+
+    const stdout = &stdout_writer.interface;
+    stdout.print(format, args) catch |err| {
+        std.debug.print("Error printing: {any}\n", .{err});
+    };
+    stdout.flush() catch |err| {
+        std.debug.print("Error flusing stdout buffer: {any}\n", .{err});
+    };
+}
 
 pub fn println(comptime format: []const u8, args: anytype) void {
     print(format ++ "\n", args);
