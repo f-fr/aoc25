@@ -30,7 +30,7 @@ Just run
 
 For each day there is single executable, e.g.
 
-   ./zig-out/bin/01
+    ./zig-out/bin/01
    
 Alternatively, each day can be run directly via the zig build script
 
