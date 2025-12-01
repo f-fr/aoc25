@@ -18,7 +18,7 @@ const assert = std.debug.assert;
 const Allocator = std.mem.Allocator;
 const Io = std.Io;
 
-const YEAR: u32 = 2024;
+const YEAR: u32 = 2025;
 
 pub fn main() !void {
     var allocator: std.heap.GeneralPurposeAllocator(.{}) = .init;
