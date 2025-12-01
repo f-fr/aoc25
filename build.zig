@@ -47,7 +47,6 @@ pub fn build(b: *std.Build) !void {
     const gen_step = b.addWriteFiles();
 
     try gen_w.writeAll(
-        \\const std = @import("std");
         \\const aoc = @import("aoc");
         \\
     );
@@ -168,36 +167,7 @@ pub fn build(b: *std.Build) !void {
     try gen_w.print("}};\n\n", .{});
     try gen_w.writeAll(
         \\pub fn main() !void {
-        \\    var t_total: f64 = 0;
-        \\    var t_day: f64 = 0;
-        \\    var cur_day: usize = 0;
-        \\    var timer = try std.time.Timer.start();
-        \\    var buffer: [4096]u8 = undefined;
-        \\    var io: std.Io.Threaded = std.Io.Threaded.init_single_threaded;
-        \\    inline for (days) |day| {
-        \\        var file = try std.fs.cwd().openFile(day.filename, .{ .mode = .read_only });
-        \\        defer file.close();
-        \\        var reader = file.reader(io.io(), &buffer);
-        \\        var lines = aoc.Lines.init(&reader.interface);
-        \\
-        \\        timer.reset();
-        \\        const s = try day.run(aoc.allocator, &lines);
-        \\        const t_end = timer.lap();
-        \\        const t = @as(f64, @floatFromInt(t_end)) / 1e9;
-        \\        if (cur_day != day.day) {
-        \\            t_total += t_day;
-        \\            t_day = t;
-        \\        }
-        \\        else t_day = @min(t_day, t);
-        \\        cur_day = day.day;
-        \\
-        \\        if (day.version.len == 0)
-        \\            aoc.println("Day {d:0>2}   : {d:.3} -- part 1: {d: >10}   part 2: {d: >15}", .{day.day, t, s[0], s[1]})
-        \\        else
-        \\            aoc.println("Day {d:0>2} v{s}: {d:.3} -- part 1: {d: >10}   part 2: {d: >15}", .{day.day, day.version, t, s[0], s[1]});
-        \\    }
-        \\    t_total += t_day; // last day
-        \\    aoc.println("Total time (best versions): {d:.3}", .{t_total});
+        \\    try aoc.run_times(days);
         \\}
     );
 

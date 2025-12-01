@@ -343,6 +343,38 @@ pub fn run_tests(runfunc: anytype, day: u8, part: u8) !void {
     }
 }
 
+pub fn run_times(comptime days: anytype) !void {
+    var t_total: f64 = 0;
+    var t_day: f64 = 0;
+    var cur_day: usize = 0;
+    var timer = try std.time.Timer.start();
+    var buffer: [4096]u8 = undefined;
+    var io: std.Io.Threaded = std.Io.Threaded.init_single_threaded;
+    inline for (days) |day| {
+        var file = try std.fs.cwd().openFile(day.filename, .{ .mode = .read_only });
+        defer file.close();
+        var reader = file.reader(io.io(), &buffer);
+        var lines = Lines.init(&reader.interface);
+
+        timer.reset();
+        const s = try day.run(allocator, &lines);
+        const t_end = timer.lap();
+        const t = @as(f64, @floatFromInt(t_end)) / 1e9;
+        if (cur_day != day.day) {
+            t_total += t_day;
+            t_day = t;
+        } else t_day = @min(t_day, t);
+        cur_day = day.day;
+
+        if (day.version.len == 0)
+            println("Day {d:0>2}   : {d:.3} -- part 1: {d: >10}   part 2: {d: >15}", .{ day.day, t, s[0], s[1] })
+        else
+            println("Day {d:0>2} v{s}: {d:.3} -- part 1: {d: >10}   part 2: {d: >15}", .{ day.day, day.version, t, s[0], s[1] });
+    }
+    t_total += t_day; // last day
+    println("Total time (best versions): {d:.3}", .{t_total});
+}
+
 pub const info = std.log.info;
 
 pub const print = std.debug.print;
