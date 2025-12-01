@@ -1,0 +1,79 @@
+#+LATEX_COMPILER: lualatex
+#+LATEX_HEADER: \usepackage{fontspec}
+#+LATEX_HEADER: \setmainfont{Noto Serif}
+#+LATEX_HEADER: \usepackage[left=1cm, right=1cm, top=2cm, bottom=2cm]{geometry}
+#+LATEX_HEADER: \setminted{bgcolor=black!5!white}
+
+#+TITLE: Advent of code 2025
+#+AUTHOR: fifr
+#+EMAIL:
+#+LANGUAGE: en
+#+OPTIONS: toc:nil
+
+This is a short write up of my Advent-of-Code-2025 solutions. The main
+purpose is to collect my ideas when looking again at the puzzles some
+time in the future.
+
+* Day 1
+First we read the input line by line, extracting the direction and the step size.
+
+#+BEGIN_SRC zig -i :exports code :tangle src/01/run.zig
+// Advent of code 25 - day 1
+const std = @import("std");
+const aoc = @import("aoc");
+
+pub fn run(_: std.mem.Allocator, lines: *aoc.Lines) ![2]u64 {
+    var pos: i16 = 50;
+    var score1: u32 = 0;
+    var score2: u32 = 0;
+    while (try lines.next()) |line| {
+        if (line.len == 0) continue; // skip empty lines
+        const sign: i16 =
+            switch (line[0]) {
+                'R' => 1,
+                'L' => -1,
+                else => return error.InvalidDirection,
+        };
+        const d = try std.fmt.parseInt(i16, line[1..], 10);
+#+END_SRC
+The new position is then
+#+BEGIN_SRC zig -i :exports code :tangle src/01/run.zig
+        const new_pos = @mod(pos + sign * d, 100);
+#+END_SRC
+The score computation for part 1 is simple: check if the new position is 0.
+#+BEGIN_SRC zig -i :exports code :tangle src/01/run.zig
+        if (new_pos == 0) score1 += 1;
+#+END_SRC
+For part 2 we consider two cases:
+   1. Forward direction if ~sign > 0~
+   2. Backward direction if ~sign < 0~
+The first case is easy. If the new position is ~new_pos = old_pos + d =
+100 * a + b~, then number of times we pass "0" is ~a~, hence
+#+BEGIN_SRC zig -i :exports code :tangle src/01/run.zig
+        if (sign > 0) score2 += @abs(@divFloor(pos + d, 100))
+#+END_SRC
+However, if we move in backward direction, the new position would be
+negative and the division computation would be wrong if the new (or
+the old) position is exactly "0". Therefore, we use a little trick:
+for the computation of the part 2 score we mirror position and
+direction such that we can use the forward computation again. In
+particular, we use ~mirror_pos = (100 - pos) % 100~ to mirror the
+position and ~new_mirror_pos = mirror_pos + d = 100 * a + b~ for the score
+computation.
+#+BEGIN_SRC zig -i :exports code :tangle src/01/run.zig
+        else score2 += @abs(@divFloor(@mod(100 - pos, 100) + d, 100));
+#+END_SRC
+Finally, update the current position
+#+BEGIN_SRC zig -i :exports code :tangle src/01/run.zig
+        pos = @intCast(new_pos);
+    }
+#+END_SRC
+and return the result
+#+BEGIN_SRC zig -i :exports code :tangle src/01/run.zig
+    return .{ score1, score2 };
+}
+#+END_SRC
+
+# Local Variables:
+# jinx-languages: "en_US"
+# End:

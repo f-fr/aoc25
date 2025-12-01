@@ -3,3 +3,8 @@
 zig-out/
 input/
 .session
+
+*.synctex.gz
+aux/
+aoc25.pdf
+aoc25.tex
