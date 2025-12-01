@@ -375,6 +375,48 @@ pub fn run_times(comptime days: anytype) !void {
     println("Total time (best versions): {d:.3}", .{t_total});
 }
 
+pub fn run_times_json(comptime days: anytype) !void {
+    var t_total: f64 = 0;
+    var t_day: f64 = 0;
+    var cur_day: usize = 0;
+    var timer = try std.time.Timer.start();
+    var buffer: [4096]u8 = undefined;
+    var io: std.Io.Threaded = std.Io.Threaded.init_single_threaded;
+    var result: [days.len]struct { day: u16, version: ?[]const u8, part1: u64, part2: u64, time: f64 } = undefined;
+    inline for (days, 0..) |day, i| {
+        var file = try std.fs.cwd().openFile(day.filename, .{ .mode = .read_only });
+        defer file.close();
+        var reader = file.reader(io.io(), &buffer);
+        var lines = Lines.init(&reader.interface);
+
+        timer.reset();
+        const s = try day.run(allocator, &lines);
+        const t_end = timer.lap();
+        const t = @as(f64, @floatFromInt(t_end)) / 1e9;
+        if (cur_day != day.day) {
+            t_total += t_day;
+            t_day = t;
+        } else t_day = @min(t_day, t);
+        cur_day = day.day;
+
+        result[i] = .{
+            .day = day.day,
+            .version = if (day.version.len == 0) null else day.version,
+            .part1 = s[0],
+            .part2 = s[1],
+            .time = t,
+        };
+    }
+    t_total += t_day; // last day
+
+    const table = .{ .times = result, .total = t_total };
+    const fmt = std.json.fmt(table, .{ .emit_null_optional_fields = false });
+    var buf: [4096]u8 = undefined;
+    var stdout = std.fs.File.stdout().writer(&buf);
+    try fmt.format(&stdout.interface);
+    try stdout.interface.flush();
+}
+
 pub const info = std.log.info;
 
 pub const print = std.debug.print;

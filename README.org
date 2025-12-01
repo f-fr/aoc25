@@ -1,0 +1,72 @@
+#+TITLE: Advent of Code 2025
+#+AUTHOR: f-fr
+#+EMAIL:
+
+My solution, this time in [[https://ziglang.org][Zig]]. My personal goal is to keep the running
+time for each day well below 0.1s (on my Raspberry Pi 2).
+
+* Creating templates for new days
+
+There is a helper tool to create empty files for each day:
+
+    ./zig-out/bin/newday XX
+    
+where XX is a number 1, 2, ... creates a new unit `DayXX` (in file
+`src/dayXX.pas`) along with empty test inputs
+`input/XX/test_part1.txt` and `input/XX/test_part2.txt`. Furthermore,
+the script downloads the instance file from the
+[[https://adventofcode.com][Advent-of-Code]]-website. However, this works only if there is a
+`.session` file in the root directory of the project (not contained in
+the repository) that contains a valid session-key.
+
+The script also registers the new file in [[https://www.jj-vcs.dev][Jujutsu]] (sorry, I
+don't use git directly).
+
+* Compiling
+
+Just run
+#+BEGIN_EXAMPLE sh
+zig build
+#+END_EXAMPLE
+
+* Running the days
+
+For each day there is single executable, e.g.
+#+BEGIN_EXAMPLE sh
+./zig-out/bin/01
+#+END_EXAMPLE
+Alternatively, each day can be run directly via the zig build script
+#+BEGIN_EXAMPLE sh
+zig build run01
+#+END_EXAMPLE
+    
+* Running the tests
+
+All tests can be run using
+#+BEGIN_EXAMPLE sh
+zig build test --summary all
+#+END_EXAMPLE
+    
+* Running all times tests
+
+All solutions for all days can be run using
+
+#+BEGIN_EXAMPLE sh
+zig build times --release=fast
+#+END_EXAMPLE
+
+** Results
+
+#+TBLNAME: times-i7
+
+#+begin_src sh
+  zig build times --release=fast
+#+end_src
+
+#+RESULTS:
+:results:
+:end:
+
+# Local Variables:
+# jinx-languages: "en_US"
+# End:

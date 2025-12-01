@@ -47,6 +47,7 @@ pub fn build(b: *std.Build) !void {
     const gen_step = b.addWriteFiles();
 
     try gen_w.writeAll(
+        \\const std = @import("std");
         \\const aoc = @import("aoc");
         \\
     );
@@ -167,6 +168,16 @@ pub fn build(b: *std.Build) !void {
     try gen_w.print("}};\n\n", .{});
     try gen_w.writeAll(
         \\pub fn main() !void {
+        \\    var args = std.process.args();
+        \\    const program = args.next() orelse return error.MissingFilename; // skip the program name
+        \\    while (args.next()) |arg| {
+        \\        if (std.mem.eql(u8, arg, "--json") or std.mem.eql(u8, arg, "-j")) {
+        \\            return try aoc.run_times_json(days);
+        \\        }
+        \\        else {
+        \\            return std.debug.print("Usage: {s} [-j|--json]\n", .{ std.fs.path.basename(program) });
+        \\        }
+        \\    }
         \\    try aoc.run_times(days);
         \\}
     );
@@ -184,8 +195,15 @@ pub fn build(b: *std.Build) !void {
     times_exe.root_module.addImport("aoc", aoc);
     const times_inst = b.addInstallArtifact(times_exe, .{});
     b.getInstallStep().dependOn(&times_inst.step);
+
     const times_cmd = b.addRunArtifact(times_exe);
     times_cmd.step.dependOn(&times_inst.step);
     const times_step = b.step("times", "Run all exercises with timings");
     times_step.dependOn(&times_cmd.step);
+
+    const times_json_cmd = b.addRunArtifact(times_exe);
+    times_json_cmd.addArg("--json");
+    times_json_cmd.step.dependOn(&times_inst.step);
+    const times_json_step = b.step("times-json", "Run all exercises with timings and output json format");
+    times_json_step.dependOn(&times_json_cmd.step);
 }
