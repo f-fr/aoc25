@@ -280,12 +280,13 @@ pub fn getInstanceFileName(buf: []u8, instance: ?usize) ![]u8 {
 
 pub fn run(name: []const u8, comptime runfn: anytype) !void {
     info("AoC23 - day {s}", .{name});
-    var buffer: [4096]u8 = undefined;
+    var buffer: [64 * 1024]u8 = undefined;
     const filename = try getInstanceFileName(&buffer, null);
     var file = try std.fs.cwd().openFile(filename, .{ .mode = .read_only });
     defer file.close();
     var io: std.Io.Threaded = std.Io.Threaded.init_single_threaded;
     var reader = file.reader(io.io(), &buffer);
+    try reader.interface.fillMore();
     var lines = Lines.init(&reader.interface);
     var timer = try std.time.Timer.start();
     const scores = try runfn(allocator, &lines);
