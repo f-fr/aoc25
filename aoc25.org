@@ -74,6 +74,128 @@ and return the result
 }
 #+END_SRC
 
+* Day 2
+We start by reading the input line by line, where "lines" are
+separated by commas. The each line is split into two parts separated by "-".
+
+#+BEGIN_SRC zig -i :exports code :tangle src/02/run.zig
+const std = @import("std");
+const aoc = @import("aoc");
+
+const powi = std.math.powi;
+
+pub fn run(allocator: std.mem.Allocator, lines: *aoc.Lines) ![2]u64 {
+    lines.delimiter = ',';
+
+    var arena = std.heap.ArenaAllocator.init(allocator);
+    defer arena.deinit();
+    const alloc = arena.allocator();
+
+    var score1: u64 = 0;
+    // invalid ids for part 2
+    var invalids: std.ArrayList(u64) = .empty;
+
+    while (try lines.next()) |rng| {
+        const toks = try aoc.splitN(2, std.mem.trim(u8, rng, " \t\r\n"), "-");
+#+END_SRC
+Next we determine the number of digits of both numbers as well as
+the numbers themselves.
+#+BEGIN_SRC zig -i :exports code :tangle src/02/run.zig
+        const d1 = toks[0].len;
+        const d2 = toks[1].len;
+
+        const x = try std.fmt.parseUnsigned(u64, toks[0], 10);
+        const y = try std.fmt.parseUnsigned(u64, toks[1], 10);
+#+END_SRC
+The idea is now to try each possible block size ~d~, which is used to
+built the repeated patterns. The minimal possible block size is 1, the
+maximal block size is $\lceil d_2/2 \rceil$ because we have to use at
+least two blocks.
+#+BEGIN_SRC zig -i :exports code :tangle src/02/run.zig
+        for (1..d2 / 2 + 1) |d| {
+#+END_SRC
+For a given block size ~d~ we compute a corresponding block
+multiplicator ~f~ by $f=10^d$.
+#+BEGIN_SRC zig -i :exports code :tangle src/02/run.zig
+            const f = try powi(u64, 10, d); // block size as 10^d
+#+END_SRC
+Furthermore we compute the minimal and the maximal /number/ of blocks
+(each of size ~d~) to be used. The minimal number is used to form ~x~, the
+maximal number to form ~y~, hence
+#+BEGIN_SRC zig -i :exports code :tangle src/02/run.zig
+            const k_min = @max(2, (d1 - 1) / d + 1); // minimal number of blocks
+            const k_max = d2 / d; // maximal number of blocks
+
+            for (k_min..k_max + 1) |k| {
+#+END_SRC
+Now, for a given block size ~d~ and block count ~k~ we can construct all
+possible numbers following the repeated pattern. Let ~z~ be value
+representing one block. Then the repeated number can be computed
+as \[z \cdot f^0 + z \cdot f^1 + \ldots + z \cdot f^{k-1} = z \cdot
+\sum_{i=0}^{k-1} f^i\]
+Using
+\[ q = \sum_{i=0}^{k-1} f^i = \frac{f^k - 1}{f - 1} \]
+the number is exactly $z \cdot q$.
+#+BEGIN_SRC zig -i :exports code :tangle src/02/run.zig
+                // block multiplicator
+                const q = (try powi(u64, f, k) - 1) / (f - 1);
+#+END_SRC
+A valid block value must not be smaller than $\lceil x / q \rceil$ and not be
+larger than $\lfloor y / q \rfloor$. Furthermore, because a block
+must not start with a leading zero, the minimal possible block value
+is \[f / 10 = \underbrace{10\ldots 0}_{d\text{ digits}}\]
+and the maximal value is
+\[f - 10 = \underbrace{99\ldots 9}_{d\text{ digits}}.\] Hence, we
+can compute the minimal and maximal possible block values by
+#+BEGIN_SRC zig -i :exports code :tangle src/02/run.zig
+                // minimal value based on x and on block-size (no leading zeros)
+                const a = @max((x - 1) / q + 1, f / 10);
+                // maximal value based on y and on block-size (no leading zeros)
+                const b = @min(y / q, f - 1);
+#+END_SRC
+If the interval is empty, there is nothing to do
+#+BEGIN_SRC zig -i :exports code :tangle src/02/run.zig
+                if (a > b) continue;
+#+END_SRC
+For part 1 we only consider the case of exactly two blocks. In that
+case we compute the sum of all possible numbers formed by blocks in
+$\{a, \ldots, b\}$, i.e.
+\[ \sum_{z=a}^b z \cdot q = q \cdot \sum_{z=a}^b z = q \cdot \frac{b(b+1) - a(a-1)}2. \]
+#+BEGIN_SRC zig -i :exports code :tangle src/02/run.zig
+                if (k == 2) {
+                    // all values in between match (hopefully)
+                    score1 += (b * (b + 1) - a * (a - 1)) / 2 * q;
+                }
+#+END_SRC
+For part 2 we simply collect all invalid ids
+#+BEGIN_SRC zig -i :exports code :tangle src/02/run.zig
+                // because there may be duplicates, we simply count
+                var z = a;
+                while (z <= b) : (z += 1) try invalids.append(alloc, z * q);
+            }
+        }
+    }
+#+END_SRC
+The remaining step is to sum the invalid ids for part2. We must take
+care of possible duplicate values, i.e. some numbers can be found by
+different block sizes (e.g. an invalid id ~111111111~ is found by block
+sizes 1, 2 and 4). Therefore, we sort the invalid ids and
+count each one only if it differs from its predecessor in the ordered
+list:
+#+BEGIN_SRC zig -i :exports code :tangle src/02/run.zig
+    aoc.sort(u64, invalids.items);
+    var score2: u64 = if (invalids.items.len == 0) 0 else invalids.items[0];
+    for (invalids.items[0 .. invalids.items.len - 1], invalids.items[1..]) |x, y| {
+        if (x != y) score2 += y;
+    }
+#+END_SRC
+That's is, we can return the results.
+#+BEGIN_SRC zig -i :exports code :tangle src/02/run.zig
+    return .{ score1, score2 };
+}
+#+END_SRC
+
+
 # Local Variables:
 # jinx-languages: "en_US"
 # End:
