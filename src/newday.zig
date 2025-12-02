@@ -84,6 +84,7 @@ fn downloadInput(gpa: Allocator, io: Io, day: u32) !void {
 
     // save downloaded file
     var file_writer = file.writer(&buffer);
+    defer file_writer.interface.flush() catch {};
     var reader = Io.Reader.fixed(tmp_writer.written());
     _ = try reader.streamRemaining(&file_writer.interface);
 }
