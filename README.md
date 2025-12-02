@@ -20,6 +20,11 @@ the repository) that contains a valid session-key.
 The script also registers the new file in [Jujutsu][jj] (sorry, I
 don't use git directly).
 
+## Explanation of my solutions
+
+There is an [explanation of my solutions][explanation] (mainly
+for my future self).
+
 ## Compiling
 
 Just run
@@ -51,6 +56,7 @@ All solutions for all days can be run using
 [aoc]: https://adventofcode.com
 [zig]: https://ziglang.org
 [jj]: https://www.jj-vcs.dev
+[explanation]: aoc25.org
 
 
 <!-- Local Variables: -->
