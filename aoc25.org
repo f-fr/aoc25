@@ -33,7 +33,7 @@ pub fn run(_: std.mem.Allocator, lines: *aoc.Lines) ![2]u64 {
                 'R' => 1,
                 'L' => -1,
                 else => return error.InvalidDirection,
-        };
+            };
         const d = try std.fmt.parseInt(i16, line[1..], 10);
 #+END_SRC
 The new position is then
@@ -50,7 +50,7 @@ For part 2 we consider two cases:
 The first case is easy. If the new position is ~new_pos = old_pos + d =
 100 * a + b~, then number of times we pass "0" is ~a~, hence
 #+BEGIN_SRC zig -i :exports code :tangle src/01/run.zig
-        if (sign > 0) score2 += @abs(@divFloor(pos + d, 100))
+        if (sign > 0) score2 += @abs(@divFloor(pos + d, 100)) // fwd
 #+END_SRC
 However, if we move in backward direction, the new position would be
 negative and the division computation would be wrong if the new (or
@@ -61,7 +61,7 @@ particular, we use ~mirror_pos = (100 - pos) % 100~ to mirror the
 position and ~new_mirror_pos = mirror_pos + d = 100 * a + b~ for the score
 computation.
 #+BEGIN_SRC zig -i :exports code :tangle src/01/run.zig
-        else score2 += @abs(@divFloor(@mod(100 - pos, 100) + d, 100));
+        else score2 += @abs(@divFloor(@mod(100 - pos, 100) + d, 100)); // bwd
 #+END_SRC
 Finally, update the current position
 #+BEGIN_SRC zig -i :exports code :tangle src/01/run.zig
@@ -115,6 +115,7 @@ least two blocks.
         for (1..d2 / 2 + 1) |d| {
 #+END_SRC
 For a given block size ~d~ we compute a corresponding block
+factor ~f~ by $f=10^d$.
 #+BEGIN_SRC zig -i :exports code :tangle src/02/run.zig
             const f = try powi(u64, 10, d); // block size as 10^d
 #+END_SRC
@@ -194,6 +195,60 @@ That's is, we can return the results.
 }
 #+END_SRC
 
+* Day 3
+The main observation is that the most significant digit of a number
+must be as large as possible. Hence, we can choose the most
+significant digit such that it is as large as possible as long as
+there are sufficiently many remaining digits to the right.
+
+We start again be reading the input line by line and ensure it has
+enough digits for part 2.
+#+BEGIN_SRC zig -i :exports code :tangle src/03/run.zig
+const std = @import("std");
+const aoc = @import("aoc");
+
+pub fn run(_: std.mem.Allocator, lines: *aoc.Lines) ![2]u64 {
+    var score1: u64 = 0;
+    var score2: u64 = 0;
+    while (try lines.next()) |line| {
+        if (line.len < 12) return error.LineTooShort;
+#+END_SRC
+For part 1 we look for the first occurrence of the largest digit
+except for the last digit in that line (because that one cannot be the
+first of two digits in the result).
+#+BEGIN_SRC zig -i :exports code :tangle src/03/run.zig
+        const i = std.mem.indexOfMax(u8, line[0 .. line.len - 1]);
+#+END_SRC
+Next we look for the largest digit to the right of the first one
+#+BEGIN_SRC zig -i :exports code :tangle src/03/run.zig
+        const j = std.mem.indexOfMax(u8, line[i + 1 ..]) + i + 1;
+#+END_SRC
+And we can already compute the result for part 1 using these two digits
+#+BEGIN_SRC zig -i :exports code :tangle src/03/run.zig
+        score1 += (line[i] - '0') * 10 + (line[j] - '0');
+#+END_SRC
+
+For part 2 we use the same strategy, but we have to ensure that there
+are enough remaining digits to the right. So for the first digit
+we do not look at the last 11 digits in that line. For the second
+digit we do not look at the last 10 digits in that line and so on.
+#+BEGIN_SRC zig -i :exports code :tangle src/03/run.zig
+        var start: usize = 0;
+        for (0..12) |k| {
+            const idx = std.mem.indexOfMax(u8, line[start .. line.len - 11 + k]) + start;
+            start = idx + 1; // for the digit start to the right of this one
+#+END_SRC
+We can add each digit to the result immediately because the \((k+1)\)-th
+most significant digit ~x~ contributes exactly $x \cdot 10^{11-k}$ to
+the final sum.
+#+BEGIN_SRC zig -i :exports code :tangle src/03/run.zig
+            score2 += try std.math.powi(u64, 10, 11 - k) * (line[idx] - '0');
+        }
+    }
+
+    return .{ score1, score2 };
+}
+#+END_SRC
 
 # Local Variables:
 # jinx-languages: "en_US"
