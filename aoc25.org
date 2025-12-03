@@ -115,7 +115,6 @@ least two blocks.
         for (1..d2 / 2 + 1) |d| {
 #+END_SRC
 For a given block size ~d~ we compute a corresponding block
-multiplicator ~f~ by $f=10^d$.
 #+BEGIN_SRC zig -i :exports code :tangle src/02/run.zig
             const f = try powi(u64, 10, d); // block size as 10^d
 #+END_SRC
