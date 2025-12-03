@@ -20,7 +20,9 @@ pub fn run(_: std.mem.Allocator, lines: *aoc.Lines) ![2]u64 {
 
         if (new_pos == 0) score1 += 1;
 
-        if (sign > 0) score2 += @abs(@divFloor(pos + d, 100)) else score2 += @abs(@divFloor(@mod(100 - pos, 100) + d, 100));
+        if (sign > 0) score2 += @abs(@divFloor(pos + d, 100)) // fwd
+
+        else score2 += @abs(@divFloor(@mod(100 - pos, 100) + d, 100)); // bwd
 
         pos = @intCast(new_pos);
     }
