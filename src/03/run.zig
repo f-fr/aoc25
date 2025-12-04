@@ -16,7 +16,7 @@ pub fn run(_: std.mem.Allocator, lines: *aoc.Lines) ![2]u64 {
         var start: usize = 0;
         for (0..12) |k| {
             const idx = std.mem.indexOfMax(u8, line[start .. line.len - 11 + k]) + start;
-            start = idx + 1; // for the digit start to the right of this one
+            start = idx + 1; // for the next digit start to the right of this one
 
             score2 += try std.math.powi(u64, 10, 11 - k) * (line[idx] - '0');
         }
