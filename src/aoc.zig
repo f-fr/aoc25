@@ -141,6 +141,15 @@ pub fn GridT(comptime T: type) type {
             return grid.at(p.i, p.j);
         }
 
+        /// Return the character at position (i, j)
+        pub fn ref(grid: *Self, i: usize, j: usize) *T {
+            return &grid.data[grid.offset(i, j)];
+        }
+
+        pub fn refPos(grid: *Self, p: Pos) *T {
+            return &grid.at(p.i, p.j);
+        }
+
         /// Return a slice to the ith row.
         pub fn row(grid: *const Self, i: usize) []T {
             return grid.data[grid.m * i .. grid.m * i + grid.m];
