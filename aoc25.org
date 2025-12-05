@@ -324,6 +324,99 @@ That's it, we can return the solution
 }
 #+END_SRC
 
+* Day 5
+The main idea is too keep all "interesting" numbers in a single ordered list.
+Interesting numbers are
+- start of an interval
+- end of an interval
+- id of an ingredient
+We then order this list of numbers are traverse is from smallest to
+largest. At the same time we keep track of the number of "open"
+intervals, i.e. of those intervals whose start has already been seen
+but whose end has not been seen, yet. If we find an "id", we can
+easily check if it is contained in one currently open interval.
+
+Several of these numbers may be equal. We need to distinguish if a
+number is start or end of an interval or if it is an id. Furthermore,
+because the intervals are inclusive, we have to ensure that we always
+see interval starts first, then the id and then the interval ends. For
+this we do not store a number $x$ itself in the list but $x \cdot f + c$
+where $f$ is an integer at least 3 and $c$ is either 0, 1 or 2 depending on
+if $x$ is a interval start, id or interval end, respectively.
+
+We start by reading the intervals and append all numbers to the list ~nums~
+#+BEGIN_SRC zig -i :exports code :tangle src/05/run.zig
+const std = @import("std");
+const aoc = @import("aoc");
+
+pub fn run(alloc: std.mem.Allocator, lines: *aoc.Lines) ![2]u64 {
+    var arena = std.heap.ArenaAllocator.init(alloc);
+    defer arena.deinit();
+    const a = arena.allocator();
+
+    const F = 4;
+    var nums: std.ArrayList(u64) = .empty;
+    while (try lines.next()) |line| {
+        if (line.len == 0) break; // stop at the first empty line
+        const ns = try aoc.toNums(u64, 2, line, "-");
+        try nums.append(a, ns[0] * F); // opening
+        try nums.append(a, ns[1] * F + 2); // closing
+        if (ns[0] > ns[1]) return error.InvalidRange;
+    }
+#+END_SRC
+Next we read the list of ids and append them as well
+#+BEGIN_SRC zig -i :exports code :tangle src/05/run.zig
+    while (try lines.next()) |line| {
+        const id = try aoc.toNum(u64, line);
+        try nums.append(a, id * F + 1); // id
+    }
+#+END_SRC
+Now we sort the list of numbers
+#+BEGIN_SRC zig -i :exports code :tangle src/05/run.zig
+    aoc.sort(u64, nums.items);
+#+END_SRC
+and traverse them in order. While doing so we keep track of the number
+of open intervals ~nopen~ at the current point as well as start of the
+first currently open interval ~start~.
+#+BEGIN_SRC zig -i :exports code :tangle src/05/run.zig
+    var score1: usize = 0;
+    var score2: u64 = 0;
+    var nopen: usize = 0;
+    var start: u64 = 0;
+    for (nums.items) |x| {
+#+END_SRC
+If the number is an interval start, we increase the number of open
+intervals and possibly store the start position (if it is the first
+open interval).
+#+BEGIN_SRC zig -i :exports code :tangle src/05/run.zig
+        if (x % F == 0) {
+            if (nopen == 0) start = x / F;
+            nopen += 1;
+#+END_SRC
+If the number is an interval end, we decrease the number of open
+intervals. If it is the last open interval, we know that all
+numbers from ~start~ to the current position are "fresh" and we
+add their count to the score of part 2.
+#+BEGIN_SRC zig -i :exports code :tangle src/05/run.zig
+        } else if (x % F == 2) {
+            nopen -= 1;
+            if (nopen == 0) score2 += (x / F - start + 1);
+#+END_SRC
+Otherwise the number is an id. If there is currently at least one open
+interval, the id is "fresh" and we increment the score for part 1.
+#+BEGIN_SRC zig -i :exports code :tangle src/05/run.zig
+        } else if (nopen > 0) {
+            score1 += 1;
+        }
+    }
+#+END_SRC
+That's it, we return the results.
+#+BEGIN_SRC zig -i :exports code :tangle src/05/run.zig
+
+    return .{ score1, score2 };
+}
+#+END_SRC
+
 # Local Variables:
 # jinx-languages: "en_US"
 # End:
