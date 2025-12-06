@@ -431,6 +431,34 @@ test "splitN" {
     for (try splitN(6, "A B C D E", " "), [_][]const u8{ "A", "B", "C", "D", "E", "" }) |a, b| try testing.expectEqualSlices(u8, a, b);
 }
 
+fn genSplitA(alloc: std.mem.Allocator, s: []const u8, separator: []const u8, comptime tokenize: anytype) ![][]const u8 {
+    var result: std.ArrayList([]const u8) = .empty;
+    errdefer result.deinit(alloc);
+
+    var toks = tokenize(u8, s, separator);
+    var i: usize = 0;
+    while (toks.next()) |tok| {
+        try result.append(alloc, tok);
+        i += 1;
+    }
+
+    return try result.toOwnedSlice(alloc);
+}
+
+pub fn splitA(alloc: std.mem.Allocator, s: []const u8, separator: []const u8) ![][]const u8 {
+    return genSplitA(alloc, s, separator, std.mem.tokenizeSequence);
+}
+
+pub fn splitAnyA(alloc: std.mem.Allocator, s: []const u8, separator: []const u8) ![][]const u8 {
+    return genSplitA(alloc, s, separator, std.mem.tokenizeAny);
+}
+
+test "splitA" {
+    const toks = try splitA(std.testing.allocator, "A B C  D E  F", " ");
+    defer std.testing.allocator.free(toks);
+    for (toks, [_][]const u8{ "A", "B", "C", "D", "E", "F" }) |a, b| try testing.expectEqualSlices(u8, a, b);
+}
+
 pub fn toNum(comptime T: type, s: []const u8) !T {
     switch (T) {
         f32, f64 => return std.fmt.parseFloat(T, trim(s)),
