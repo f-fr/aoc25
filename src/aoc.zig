@@ -127,6 +127,10 @@ pub fn GridT(comptime T: type) type {
             return g;
         }
 
+        pub fn deinit(self: *Self, alloc: std.mem.Allocator) void {
+            alloc.free(self.data);
+        }
+
         /// Return the linear offset of the element at (i, j).
         pub fn offset(grid: *const Self, i: usize, j: usize) usize {
             return grid.m * i + j;
