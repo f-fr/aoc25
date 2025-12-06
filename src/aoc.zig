@@ -204,11 +204,17 @@ pub const Lines = struct {
     }
 
     /// Read the whole file as a grid.
+    ///
+    /// The memory belongs to the caller.
     pub fn readGrid(self: *Lines, alloc: std.mem.Allocator) !Grid {
         return try readNextGrid(self, alloc) orelse error.UnexpectedEndOfFile;
     }
 
     /// Read the next lines of a file (until an empty line or eof) as a grid.
+    ///
+    /// All lines must have the same length.
+    ///
+    /// The memory belongs to the caller.
     pub fn readNextGrid(self: *Lines, alloc: std.mem.Allocator) !?Grid {
         var data: std.ArrayList(u8) = .empty;
         defer data.deinit(alloc);
@@ -234,6 +240,8 @@ pub const Lines = struct {
 
     /// Read the whole file as a grid and add an additional boundary
     /// character `boundary` around the field.
+    ///
+    /// All lines must have the same length.
     ///
     /// The memory belongs to the caller.
     pub fn readGridWithBoundary(self: *Lines, alloc: std.mem.Allocator, boundary: u8) !Grid {
@@ -274,7 +282,71 @@ pub const Lines = struct {
 
         return .{ .n = n, .m = m, .data = try data.toOwnedSlice(alloc) };
     }
+
+    /// Read the whole file as a grid.
+    ///
+    /// The width of the grid will be determined by the longest line.
+    /// Shorter lines will be filled with a `fill` character.
+    ///
+    /// The memory belongs to the caller.
+    pub fn readGridFilled(self: *Lines, alloc: std.mem.Allocator, fill: u8) !Grid {
+        return try readNextGridFilled(self, alloc, fill) orelse error.UnexpectedEndOfFile;
+    }
+
+    /// Read the next lines of a file (until an empty line or eof) as a grid.
+    ///
+    /// The width of the grid will be determined by the longest line.
+    /// Shorter lines will be filled with a `fill` character.
+    ///
+    /// All lines must have the same length.
+    ///
+    /// The memory belongs to the caller.
+    pub fn readNextGridFilled(self: *Lines, alloc: std.mem.Allocator, fill: u8) !?Grid {
+        var lines: std.ArrayList([]u8) = .empty;
+        defer {
+            for (lines.items) |l| alloc.free(l);
+            lines.deinit(alloc);
+        }
+
+        var n: usize = 0;
+        var m: usize = 0;
+        while (try self.next()) |line| {
+            if (line.len == 0) break;
+            m = @max(m, line.len);
+            try lines.append(alloc, try alloc.dupe(u8, line));
+            n += 1;
+        }
+
+        if (m == 0) return null;
+
+        const data = try alloc.alloc(u8, n * m);
+        for (lines.items, 0..) |l, i| {
+            @memcpy(data[i * m .. i * m + l.len], l);
+            @memset(data[i * m + l.len .. i * m + m], fill);
+        }
+
+        return .{ .n = n, .m = m, .data = data };
+    }
 };
+
+test "readNextGridFilled" {
+    const input =
+        \\123
+        \\45678
+        \\90
+        \\
+        \\xxx
+    ;
+    var r = std.Io.Reader.fixed(input);
+    var lines = Lines.init(&r);
+    var g = (try lines.readNextGridFilled(testing.allocator, '.')).?;
+    defer g.deinit(testing.allocator);
+    try testing.expectEqual(3, g.n);
+    try testing.expectEqual(5, g.m);
+    try testing.expectEqualSlices(u8, "123..", g.row(0));
+    try testing.expectEqualSlices(u8, "45678", g.row(1));
+    try testing.expectEqualSlices(u8, "90...", g.row(2));
+}
 
 pub fn getInstanceFileName(buf: []u8, instance: ?usize) ![]u8 {
     var args = std.process.args();
