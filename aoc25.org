@@ -417,6 +417,119 @@ That's it, we return the results.
 }
 #+END_SRC
 
+* TODO Day 6
+We start by reading the input as character grid.
+#+BEGIN_SRC zig -i :exports code :tangle src/06/run.zig
+const std = @import("std");
+const aoc = @import("aoc");
+
+pub fn run(alloc: std.mem.Allocator, lines: *aoc.Lines) ![2]u64 {
+    var arena = std.heap.ArenaAllocator.init(alloc);
+    defer arena.deinit();
+    const a = arena.allocator();
+
+    var g = try lines.readGridFilled(a, ' ');
+#+END_SRC
+This might be surprising, but for part2 it is very convenient.
+Furthermore, a grid can also be used as a list of (text) lines.
+
+The last line contains the operators, so we extract this line from the
+grid.
+#+BEGIN_SRC zig -i :exports code :tangle src/06/run.zig
+    var ops = try aoc.splitA(a, g.row(g.n - 1), " ");
+    // ignore last row
+    g.n -= 1;
+#+END_SRC
+We compute all "columns" in parallel. For each column we start with the
+first number.
+#+BEGIN_SRC zig -i :exports code :tangle src/06/run.zig
+    var nums = try aoc.toNumsA(u64, a, g.row(0), " ");
+#+END_SRC
+Now we iterate through for all subsequent rows and split it into a
+sequence of numbers (one for each column).
+#+BEGIN_SRC zig -i :exports code :tangle src/06/run.zig
+    for (1..g.n) |i| {
+        var toks = std.mem.tokenizeSequence(u8, g.row(i), " ");
+#+END_SRC
+Now we combine each number with the accumulated number of the
+respective column (either addition or multiplication).
+#+BEGIN_SRC zig -i :exports code :tangle src/06/run.zig
+        var j: usize = 0;
+        while (toks.next()) |tok| {
+            if (ops[j][0] == '+')
+                nums[j] += try aoc.toNum(u32, tok)
+            else
+                nums[j] *= try aoc.toNum(u32, tok);
+            j += 1;
+        }
+    }
+#+END_SRC
+For part 1 it remains to sum all accumulated numbers.
+#+BEGIN_SRC zig -i :exports code :tangle src/06/run.zig
+    var score1: u64 = 0;
+    for (nums) |n| score1 += n;
+#+END_SRC
+Part 2 is very similar, but the numbers have to be read "downwards".
+The easiest way to get them in "normal form" is to rotate the grid
+90 degrees counter clockwise.
+#+BEGIN_SRC zig -i :exports code :tangle src/06/run.zig
+    var g2 = try g.rotateLeft(a);
+#+END_SRC
+The lines of the rotate grid correspond to the single numbers. The
+numbers of one follow in succession, the numbers of different
+exercises are separated by (at least) one empty line (where empty lines
+means that it contains only spaces). Furthermore, the first exercise
+in the rotate grid corresponds to the right-most exercise in the original grid,
+so the operators must be used from right to left as well. We use two variables
+~i~ and ~j~ where ~i~ is the current row and ~j~ is the current exercise.
+#+BEGIN_SRC zig -i :exports code :tangle src/06/run.zig
+    var i: usize = 0;
+    var j: usize = 0;
+#+END_SRC
+Now iterate through all exercises computing the score for part 2
+#+BEGIN_SRC zig -i :exports code :tangle src/06/run.zig
+    var score2: u64 = 0;
+    while (j < ops.len) : (j += 1) {
+#+END_SRC
+If the operator is a "+" we need to sum up the numbers of this
+exercise
+#+BEGIN_SRC zig -i :exports code :tangle src/06/run.zig
+        if (ops[ops.len - j - 1][0] == '+') {
+            var s: u64 = 0;
+            while (i < g2.n) : (i += 1) {
+                s += aoc.toNum(u32, g2.row(i)) catch break;
+            }
+            score2 += s;
+#+END_SRC
+Note that the conversion to a number will fail if the line is empty,
+hence we can detect the end of the current exercise by looking at
+the error condition of ~aoc.toNum~.
+
+If the operator is a "*" the computation is the same except that we
+multiply all numbers.
+#+BEGIN_SRC zig -i :exports code :tangle src/06/run.zig
+        } else {
+            var p: u64 = 1;
+            while (i < g2.n) : (i += 1) {
+                p *= aoc.toNum(u32, g2.row(i)) catch break;
+            }
+            score2 += p;
+        }
+#+END_SRC
+Finally, we skip all empty lines to find the start of the next exercise.
+#+BEGIN_SRC zig -i :exports code :tangle src/06/run.zig
+
+        // skip empty lines
+        while (i < g2.n and std.mem.trim(u8, g2.row(i), " ").len == 0) i += 1;
+    }
+#+END_SRC
+It remains to return the results.
+#+BEGIN_SRC zig -i :exports code :tangle src/06/run.zig
+    return .{ score1, score2 };
+}
+#+END_SRC
+
+
 # Local Variables:
 # jinx-languages: "en_US"
 # End:
