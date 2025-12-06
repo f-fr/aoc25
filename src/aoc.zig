@@ -186,7 +186,35 @@ pub fn GridT(comptime T: type) type {
                 .data = try alloc.dupe(T, grid.data),
             };
         }
+
+        /// Rotate the grid 90 degrees counter clock wise and return
+        /// the result as new grid.
+        pub fn rotateLeft(grid: *const Self, alloc: std.mem.Allocator) !Self {
+            var g = try Self.init(alloc, grid.m, grid.n);
+            for (0..grid.n) |i| {
+                for (0..grid.m) |j| {
+                    g.set(grid.m - j - 1, i, grid.at(i, j));
+                }
+            }
+            return g;
+        }
     };
+}
+
+test "Grid.rotateLeft" {
+    const data = "1234567890ab";
+    var g = Grid.initBuffer(try testing.allocator.dupe(u8, data), 3, 4);
+    defer g.deinit(testing.allocator);
+
+    var g2 = try g.rotateLeft(testing.allocator);
+    defer g2.deinit(testing.allocator);
+
+    try testing.expectEqual(4, g2.n);
+    try testing.expectEqual(3, g2.m);
+    try testing.expectEqualSlices(u8, "48b", g2.row(0));
+    try testing.expectEqualSlices(u8, "37a", g2.row(1));
+    try testing.expectEqualSlices(u8, "260", g2.row(2));
+    try testing.expectEqualSlices(u8, "159", g2.row(3));
 }
 
 const BufferType = enum { file, buffer };
