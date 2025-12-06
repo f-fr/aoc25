@@ -293,8 +293,8 @@ pub const Lines = struct {
             if (line.len == 0) break;
             if (m == 0) {
                 m = line.len + 2;
-                // assume that the grid is quadratic
-                try data.ensureTotalCapacity(alloc, m * m);
+                // assume that the grid is quadratic (but at most 100 lines)
+                try data.ensureTotalCapacity(alloc, m * @min(100, m));
                 try data.appendNTimes(alloc, boundary, m);
             } else if (m != line.len + 2)
                 return error.InvalidRowLength;
@@ -326,38 +326,98 @@ pub const Lines = struct {
     /// The width of the grid will be determined by the longest line.
     /// Shorter lines will be filled with a `fill` character.
     ///
-    /// All lines must have the same length.
-    ///
     /// The memory belongs to the caller.
     pub fn readNextGridFilled(self: *Lines, alloc: std.mem.Allocator, fill: u8) !?Grid {
+        // As long as lines get only smaller, we do not need to allocate
+        // memory for each line separately. Instead we use the same
+        // strategy as `readNextGrid` and read everything in one
+        // single continuous array (which may be resized).
+        var data: std.ArrayList(u8) = .empty;
+        defer data.deinit(alloc);
+
+        // The list of lines (needed only if the lines get longer).
+        // The memory of the `nfirst` lines will be contained in `data`.
+        var nfirst: usize = 0;
         var lines: std.ArrayList([]u8) = .empty;
-        defer {
-            for (lines.items) |l| alloc.free(l);
+        defer if (lines.items.len > 0) {
+            for (lines.items[nfirst..]) |l| alloc.free(l);
             lines.deinit(alloc);
-        }
+        };
 
         var n: usize = 0;
         var m: usize = 0;
         while (try self.next()) |line| {
             if (line.len == 0) break;
-            m = @max(m, line.len);
-            try lines.append(alloc, try alloc.dupe(u8, line));
+            if (lines.items.len == 0) {
+                if (m == 0) {
+                    // the first line, assume the grid is a square (but at most 100 lines)
+                    m = line.len;
+                    try data.ensureTotalCapacity(alloc, m * @min(100, m));
+                }
+                if (line.len <= m) {
+                    try data.appendSlice(alloc, line);
+                    try data.appendNTimes(alloc, fill, m - line.len);
+                    nfirst += 1;
+                } else {
+                    // This line is longer than the previous lines.
+                    // We switch to single-line mode.
+                    try lines.ensureTotalCapacity(alloc, 2 * (n + 1));
+                    // Add the existing lines (the first `nfirst` lines are managed
+                    // by `data`).
+                    for (0..n) |i| {
+                        lines.appendAssumeCapacity(data.items[i * m .. i * m + m]);
+                    }
+                    // add the new line
+                    lines.appendAssumeCapacity(try alloc.dupe(u8, line));
+                    m = line.len;
+                }
+            } else {
+                // single-line mode, just append the new line
+                m = @max(m, line.len);
+                try lines.append(alloc, try alloc.dupe(u8, line));
+            }
             n += 1;
         }
 
         if (m == 0) return null;
 
-        const data = try alloc.alloc(u8, n * m);
-        for (lines.items, 0..) |l, i| {
-            @memcpy(data[i * m .. i * m + l.len], l);
-            @memset(data[i * m + l.len .. i * m + m], fill);
+        if (lines.items.len == 0) {
+            return .{
+                .n = n,
+                .m = m,
+                .data = try data.toOwnedSlice(alloc),
+            };
+        } else {
+            const res = try alloc.alloc(u8, n * m);
+            for (lines.items, 0..) |l, i| {
+                @memcpy(res[i * m .. i * m + l.len], l);
+                @memset(res[i * m + l.len .. i * m + m], fill);
+            }
+            return .{ .n = n, .m = m, .data = res };
         }
-
-        return .{ .n = n, .m = m, .data = data };
     }
 };
 
-test "readNextGridFilled" {
+test "readNextGridFilled equal lines" {
+    const input =
+        \\12345
+        \\45678
+        \\90abc
+        \\
+        \\xxx
+    ;
+    var r = std.Io.Reader.fixed(input);
+    var lines = Lines.init(&r);
+    var g = (try lines.readNextGridFilled(testing.allocator, '.')).?;
+    defer g.deinit(testing.allocator);
+    try testing.expectEqual(3, g.n);
+    try testing.expectEqual(5, g.m);
+    try testing.expectEqualSlices(u8, "12345", g.row(0));
+    try testing.expectEqualSlices(u8, "45678", g.row(1));
+    try testing.expectEqualSlices(u8, "90abc", g.row(2));
+}
+
+test "readNextGridFilled non equal lines" {
     const input =
         \\123
         \\45678
@@ -374,6 +434,25 @@ test "readNextGridFilled" {
     try testing.expectEqualSlices(u8, "123..", g.row(0));
     try testing.expectEqualSlices(u8, "45678", g.row(1));
     try testing.expectEqualSlices(u8, "90...", g.row(2));
+}
+
+test "readNextGridFilled with lines getting shorter" {
+    const input =
+        \\12345
+        \\4567
+        \\90a
+        \\
+        \\xxx
+    ;
+    var r = std.Io.Reader.fixed(input);
+    var lines = Lines.init(&r);
+    var g = (try lines.readNextGridFilled(testing.allocator, '.')).?;
+    defer g.deinit(testing.allocator);
+    try testing.expectEqual(3, g.n);
+    try testing.expectEqual(5, g.m);
+    try testing.expectEqualSlices(u8, "12345", g.row(0));
+    try testing.expectEqualSlices(u8, "4567.", g.row(1));
+    try testing.expectEqualSlices(u8, "90a..", g.row(2));
 }
 
 pub fn getInstanceFileName(buf: []u8, instance: ?usize) ![]u8 {
