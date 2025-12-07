@@ -151,7 +151,7 @@ pub fn GridT(comptime T: type) type {
         }
 
         pub fn refPos(grid: *Self, p: Pos) *T {
-            return &grid.at(p.i, p.j);
+            return grid.ref(p.i, p.j);
         }
 
         /// Return a slice to the ith row.
