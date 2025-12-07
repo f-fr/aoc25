@@ -529,6 +529,98 @@ It remains to return the results.
 }
 #+END_SRC
 
+* Day 7
+This exercise can be solved line by line. We start by looking for the first
+line containing the starting point. We also store the length of this line.
+#+BEGIN_SRC zig -i :exports code :tangle src/07/run.zig
+const std = @import("std");
+const aoc = @import("aoc");
+
+pub fn run(alloc: std.mem.Allocator, lines: *aoc.Lines) ![2]u64 {
+    var arena = std.heap.ArenaAllocator.init(alloc);
+    defer arena.deinit();
+    const a = arena.allocator();
+
+    var m: usize = 0;
+    const s = start: while (try lines.next()) |line| {
+        if (std.mem.findScalar(u8, line, 'S')) |j| {
+            m = line.len;
+            break :start j;
+        }
+    } else return error.MissingStart;
+#+END_SRC
+In each iteration we compute the number of tachyons in each field of
+the next line. For this we keep the number of tachyons in each field
+of the current in an array ~cur~ and compute the values for the next
+line in ~nxt~. Note that both arrays are of size ~m+2~ so we keep one
+additional (empty) field at the boundaries and we do not have to deal
+with special cases anymore.
+#+BEGIN_SRC zig -i :exports code :tangle src/07/run.zig
+    var cur = try a.alloc(u64, m + 2);
+    var nxt = try a.alloc(u64, m + 2);
+#+END_SRC
+The starting line contains exactly one tachyon in the starting position
+and zero everywhere else.
+#+BEGIN_SRC zig -i :exports code :tangle src/07/run.zig
+    @memset(cur, 0);
+    cur[s + 1] = 1;
+#+END_SRC
+Now we run run through all lines.
+#+BEGIN_SRC zig -i :exports code :tangle src/07/run.zig
+    var score1: usize = 0;
+    while (try lines.next()) |line| {
+        if (line.len != m) return error.InvalidLineLen;
+#+END_SRC
+We initialize the values for the next line to ~zero~
+#+BEGIN_SRC zig -i :exports code :tangle src/07/run.zig
+        @memset(nxt, 0);
+#+END_SRC
+Next we inspect all fields of the next line one by one
+#+BEGIN_SRC zig -i :exports code :tangle src/07/run.zig
+        for (line, 1..) |c, j| {
+            switch (c) {
+#+END_SRC
+According to the rules, if a field contains a dot it contains
+exactly the number of tachyons from the field above
+#+BEGIN_SRC zig -i :exports code :tangle src/07/run.zig
+                '.' => nxt[j] += cur[j],
+#+END_SRC
+Otherwise, if the field contains a splitter, we do to things. First
+we increase the number of times a tachyon is split (score of part 1).
+#+BEGIN_SRC zig -i :exports code :tangle src/07/run.zig
+                '^' => {
+                    score1 += @intFromBool(cur[j] > 0);
+#+END_SRC
+Second, the value of the field above is added to the fields left and
+right of the splitter.
+#+BEGIN_SRC zig -i :exports code :tangle src/07/run.zig
+                    nxt[j - 1] += cur[j];
+                    nxt[j + 1] += cur[j];
+                },
+#+END_SRC
+No other character is allowed in a valid input.
+#+BEGIN_SRC zig -i :exports code :tangle src/07/run.zig
+                else => return error.InvalidChar,
+            }
+        }
+#+END_SRC
+After finishing the current line, the next values become the new
+current values of the next line. Hence, we swap the ~cur~ and ~nxt~ arrays.
+#+BEGIN_SRC zig -i :exports code :tangle src/07/run.zig
+        std.mem.swap([]u64, &cur, &nxt);
+    }
+#+END_SRC
+All that remains to do for part 2 is to sum the number of all tachyons
+in the final line (now contained in ~cur~)
+#+BEGIN_SRC zig -i :exports code :tangle src/07/run.zig
+    var score2: u64 = 0;
+    for (cur) |x| score2 += x;
+#+END_SRC
+And return the results
+#+BEGIN_SRC zig -i :exports code :tangle src/07/run.zig
+    return .{ score1, score2 };
+}
+#+END_SRC
 
 # Local Variables:
 # jinx-languages: "en_US"
