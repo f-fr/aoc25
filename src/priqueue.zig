@@ -67,6 +67,25 @@ pub fn PriQueue(comptime K: type, comptime V: type) type {
             return self.len;
         }
 
+        pub fn initWith(allocator: std.mem.Allocator, keys: []const K, values: []const V) !Self {
+            const n = keys.len;
+            std.debug.assert(n == values.len);
+            var pq = try initCapacity(allocator, n);
+            pq.len = n;
+            @memcpy(pq.keys, keys);
+            @memcpy(pq.values, values);
+            for (pq.heap, pq.positions, 0..) |*idx, *pos, i| {
+                idx.* = i;
+                pos.* = i;
+            }
+
+            for (0..n) |k| {
+                pq.downHeap(n - k - 1);
+            }
+
+            return pq;
+        }
+
         pub fn push(self: *Self, key: K, value: V) !Item {
             var idx: usize = undefined;
             if (self.firstfree) |free| {
@@ -116,6 +135,23 @@ pub fn PriQueue(comptime K: type, comptime V: type) type {
             self.positions[idx] = i;
         }
 
+        fn downHeap(self: *Self, idx: usize) void {
+            var i: usize = idx;
+            const last = self.heap[i];
+            while (true) {
+                var j = 2 * i + 1;
+                const k = j + 1;
+                if (j >= self.len) break;
+                if (k < self.len and self.values[self.heap[k]] < self.values[self.heap[j]]) j = k;
+                if (self.values[self.heap[j]] >= self.values[last]) break;
+                self.heap[i] = self.heap[j];
+                self.positions[self.heap[j]] = i;
+                i = j;
+            }
+            self.heap[i] = last;
+            self.positions[last] = i;
+        }
+
         pub fn popOrNull(self: *Self) ?struct { key: K, value: V } {
             if (self.len == 0) return null;
 
@@ -124,22 +160,9 @@ pub fn PriQueue(comptime K: type, comptime V: type) type {
             self.firstfree = idx;
 
             self.len -= 1;
-            const last = self.heap[self.len];
-
             if (self.len > 0) {
-                var i: usize = 0;
-                while (true) {
-                    var j = 2 * i + 1;
-                    const k = j + 1;
-                    if (j >= self.len) break;
-                    if (k < self.len and self.values[self.heap[k]] < self.values[self.heap[j]]) j = k;
-                    if (self.values[self.heap[j]] >= self.values[last]) break;
-                    self.heap[i] = self.heap[j];
-                    self.positions[self.heap[j]] = i;
-                    i = j;
-                }
-                self.heap[i] = last;
-                self.positions[last] = i;
+                self.heap[0] = self.heap[self.len];
+                self.downHeap(0);
             }
 
             return .{ .key = self.keys[idx], .value = self.values[idx] };
@@ -230,5 +253,17 @@ test "heapsort with decrease and free" {
         const res = h.popOrNull() orelse unreachable;
         try testing.expectEqual(i, res.value);
         try testing.expectEqual(i, res.key % 100);
+    }
+}
+
+test "heapsort with makeheap" {
+    const ary = [_]u32{ 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1 };
+    var h = try PriQueue(u32, u32).initWith(testing.allocator, &ary, &ary);
+    defer h.deinit();
+
+    for (1..11) |i| {
+        const res = h.popOrNull() orelse unreachable;
+        try testing.expectEqual(i, res.value);
+        try testing.expectEqual(i, res.key);
     }
 }

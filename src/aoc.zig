@@ -5,7 +5,7 @@ const search = @import("./search.zig");
 pub const GenArray = @import("./genary.zig").GenArray;
 pub const Search = search.Search;
 pub const SearchWithSeen = search.SearchWithSeen;
-pub const PriQueue = @import("./priqueue.zig");
+pub const PriQueue = @import("./priqueue.zig").PriQueue;
 pub const NamesBag = @import("./namesbag.zig").NamesBag;
 
 //pub var allocator_instance = std.heap.GeneralPurposeAllocator(.{}){};
