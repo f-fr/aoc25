@@ -9,8 +9,8 @@ pub const PriQueue = @import("./priqueue.zig");
 pub const NamesBag = @import("./namesbag.zig").NamesBag;
 
 //pub var allocator_instance = std.heap.GeneralPurposeAllocator(.{}){};
-// 1.5 MiB of memory for dynamic allocation
-var mem_buffer: [1024 * 1024 * 3 / 2]u8 = undefined;
+// 50 MiB of memory for dynamic allocation
+var mem_buffer: [1024 * 1024 * 20]u8 = undefined;
 pub var allocator_instance = std.heap.FixedBufferAllocator.init(&mem_buffer);
 pub var allocator = if (@import("builtin").is_test) testing.allocator else allocator_instance.allocator();
 
