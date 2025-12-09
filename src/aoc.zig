@@ -489,7 +489,7 @@ pub fn run(name: []const u8, comptime runfn: anytype) !void {
     println("Time  : {d:.3}", .{@as(f64, @floatFromInt(t_end)) / 1e9});
 }
 
-fn run_test(runfunc: anytype, reader: *std.Io.Reader, part: u8) !void {
+fn run_test(runfunc: anytype, reader: *std.Io.Reader, part: u8, both_parts: bool) !void {
     std.debug.assert(part >= 1 and part <= 2);
 
     var lines = Lines.init(reader);
@@ -500,6 +500,9 @@ fn run_test(runfunc: anytype, reader: *std.Io.Reader, part: u8) !void {
     var toks = std.mem.tokenizeAny(u8, expected_line[9..], " \t");
     const expected_score1_str = toks.next() orelse return error.MissingExpectedValue;
     const expected_score2_str = toks.next();
+
+    // do not run a test on part 2 if there is only an expected result for part 1
+    if (part == 2 and both_parts and expected_score2_str == null) return;
 
     const expected_score1 = try std.fmt.parseInt(u64, expected_score1_str, 10);
     const expected_score2 = if (expected_score2_str) |s| try std.fmt.parseInt(u64, s, 10) else expected_score1;
@@ -521,17 +524,19 @@ pub fn run_tests(runfunc: anytype, day: u8, part: u8) !void {
     var dir_it = dir.iterate();
     while (try dir_it.next()) |d| {
         if (std.mem.startsWith(u8, d.name, "test") and std.mem.endsWith(u8, d.name, ".txt")) {
+            var both_parts = true;
             if (std.mem.startsWith(u8, d.name[4..], "_part")) {
                 const end = if (std.mem.findAny(u8, d.name[9..], "_.")) |i| i + 9 else d.name.len;
                 const p = try std.fmt.parseInt(u32, d.name[9..end], 10);
                 // test case is not for this part -> skip
                 if (p != part) continue;
+                both_parts = false;
             }
             // run this test case
             var file = try dir.openFile(d.name, .{ .mode = .read_only });
             defer file.close();
             var reader = file.reader(io, &buffer);
-            try run_test(runfunc, &reader.interface, part);
+            try run_test(runfunc, &reader.interface, part, both_parts);
         }
     }
 }
