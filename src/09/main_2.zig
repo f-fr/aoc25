@@ -102,12 +102,24 @@ pub fn run(alloc: std.mem.Allocator, lines: *aoc.Lines) ![2]u64 {
     var score1: u64 = 0;
     var score2: u64 = 0;
     for (pnts.items, 0..) |p, i| {
+        var last_failed = false;
+        var last_area: u64 = 0;
         for (pnts.items[i + 1 ..]) |q| {
             const area: u64 = @reduce(.Mul, @abs(p - q) + @as(@Vector(2, u64), @splat(2))) / 4;
             score1 = @max(score1, area);
 
+            if (last_failed and area > last_area) {
+                last_area = area;
+                last_failed = true;
+                continue;
+            }
+
+            last_failed = false;
+            last_area = area;
+
             if (area < score2) continue;
 
+            last_failed = true;
             const m = (p + q) / @as(Pnt, @splat(2)) + Pnt{ 1, 1 };
             const cnt = countHorizIntersections(pnts.items, by_x.items, 0, m[0], m[1]);
             if (cnt % 2 == 0) continue;
@@ -117,6 +129,8 @@ pub fn run(alloc: std.mem.Allocator, lines: *aoc.Lines) ![2]u64 {
             if (intersectsHoriz(pnts.items, by_x.items, rect.left, rect.right, rect.bottom)) continue;
             if (intersectsVert(pnts.items, by_y.items, rect.top, rect.bottom, rect.left)) continue;
             if (intersectsVert(pnts.items, by_y.items, rect.top, rect.bottom, rect.right)) continue;
+
+            last_failed = false;
 
             score2 = @max(score2, area);
         }
