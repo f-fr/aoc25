@@ -2,16 +2,16 @@
 const std = @import("std");
 const aoc = @import("aoc");
 
-const Pnt = @Vector(2, f32);
+const Pnt = @Vector(2, i32);
 const Segment = [2]Pnt;
 
-fn makeRect(p: Pnt, q: Pnt) struct { top: f32, left: f32, right: f32, bottom: f32 } {
+fn makeRect(p: Pnt, q: Pnt) struct { top: i32, left: i32, right: i32, bottom: i32 } {
     var tl = @min(p, q);
     var br = @max(p, q);
     inline for (0..2) |i| {
         if (tl[i] != br[i]) {
-            tl[i] += 0.25;
-            br[i] -= 0.25;
+            tl[i] += 1;
+            br[i] -= 1;
         }
     }
     return .{ .top = tl[1], .bottom = br[1], .left = tl[0], .right = br[0] };
@@ -25,17 +25,17 @@ fn lessByY(pnts: []const Pnt, i: usize, j: usize) bool {
     return pnts[i][1] < pnts[j][1];
 }
 
-fn cmpByX(ctx: struct { []const Pnt, f32 }, i: usize) std.math.Order {
+fn cmpByX(ctx: struct { []const Pnt, i32 }, i: usize) std.math.Order {
     const pnts, const x = ctx;
     return std.math.order(x, pnts[i][0]);
 }
 
-fn cmpByY(ctx: struct { []const Pnt, f32 }, i: usize) std.math.Order {
+fn cmpByY(ctx: struct { []const Pnt, i32 }, i: usize) std.math.Order {
     const pnts, const y = ctx;
     return std.math.order(y, pnts[i][1]);
 }
 
-fn intersectsHoriz(pnts: []const Pnt, by_x: []const usize, x1: f32, x2: f32, y: f32) bool {
+fn intersectsHoriz(pnts: []const Pnt, by_x: []const usize, x1: i32, x2: i32, y: i32) bool {
     const i_start = std.sort.lowerBound(usize, by_x, .{ pnts, x1 }, cmpByX);
     const n = pnts.len;
     for (by_x[i_start..]) |i| {
@@ -48,7 +48,7 @@ fn intersectsHoriz(pnts: []const Pnt, by_x: []const usize, x1: f32, x2: f32, y: 
     return false;
 }
 
-fn countHorizIntersections(pnts: []const Pnt, by_x: []const usize, x1: f32, x2: f32, y: f32) usize {
+fn countHorizIntersections(pnts: []const Pnt, by_x: []const usize, x1: i32, x2: i32, y: i32) usize {
     const i_start = std.sort.lowerBound(usize, by_x, .{ pnts, x1 }, cmpByX);
     const n = pnts.len;
     var cnt: usize = 0;
@@ -62,7 +62,7 @@ fn countHorizIntersections(pnts: []const Pnt, by_x: []const usize, x1: f32, x2: 
     return cnt;
 }
 
-fn intersectsVert(pnts: []const Pnt, by_y: []const usize, y1: f32, y2: f32, x: f32) bool {
+fn intersectsVert(pnts: []const Pnt, by_y: []const usize, y1: i32, y2: i32, x: i32) bool {
     const i_start = std.sort.lowerBound(usize, by_y, .{ pnts, y1 }, cmpByY);
     const n = pnts.len;
     for (by_y[i_start..]) |i| {
@@ -83,7 +83,9 @@ pub fn run(alloc: std.mem.Allocator, lines: *aoc.Lines) ![2]u64 {
 
     var pnts: std.ArrayList(Pnt) = .empty;
     while (try lines.next()) |line| {
-        try pnts.append(a, try aoc.toNums(f32, 2, line, ","));
+        try pnts.append(a, try aoc.toNums(i32, 2, line, ","));
+        pnts.items[pnts.items.len - 1][0] *= 2;
+        pnts.items[pnts.items.len - 1][1] *= 2;
     }
     const n = pnts.items.len;
 
@@ -100,13 +102,25 @@ pub fn run(alloc: std.mem.Allocator, lines: *aoc.Lines) ![2]u64 {
     var score1: u64 = 0;
     var score2: u64 = 0;
     for (pnts.items, 0..) |p, i| {
+        var last_failed = false;
+        var last_area: u64 = 0;
         for (pnts.items[i + 1 ..]) |q| {
-            const area: u64 = @intFromFloat(@reduce(.Mul, @abs(p - q) + @as(@Vector(2, f32), @splat(1))));
+            const area: u64 = @reduce(.Mul, @abs(p - q) + @as(@Vector(2, u64), @splat(2))) / 4;
             score1 = @max(score1, area);
+
+            if (last_failed and area > last_area) {
+                last_area = area;
+                last_failed = true;
+                continue;
+            }
+
+            last_failed = false;
+            last_area = area;
 
             if (area < score2) continue;
 
-            const m = (p + q) / @as(Pnt, @splat(2)) + Pnt{ 0.25, 0.25 };
+            last_failed = true;
+            const m = (p + q) / @as(Pnt, @splat(2)) + Pnt{ 1, 1 };
             const cnt = countHorizIntersections(pnts.items, by_x.items, 0, m[0], m[1]);
             if (cnt % 2 == 0) continue;
             const rect = makeRect(p, q);
@@ -115,6 +129,8 @@ pub fn run(alloc: std.mem.Allocator, lines: *aoc.Lines) ![2]u64 {
             if (intersectsHoriz(pnts.items, by_x.items, rect.left, rect.right, rect.bottom)) continue;
             if (intersectsVert(pnts.items, by_y.items, rect.top, rect.bottom, rect.left)) continue;
             if (intersectsVert(pnts.items, by_y.items, rect.top, rect.bottom, rect.right)) continue;
+
+            last_failed = false;
 
             score2 = @max(score2, area);
         }
