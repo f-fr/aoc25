@@ -8,3 +8,5 @@ input/
 aux/
 aoc25.pdf
 aoc25.tex
+
+*.zpl
