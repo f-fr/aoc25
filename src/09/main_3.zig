@@ -20,16 +20,7 @@ fn cmpI32(u: i32, v: i32) std.math.Order {
     return std.math.order(u, v);
 }
 
-fn unique(comptime T: type, items: []T) []T {
-    var skip: usize = 0;
-    for (1..items.len) |i| {
-        if (items[i] == items[i - 1])
-            skip += 1
-        else
-            items[i - skip] = items[i];
-    }
-    return items[0 .. items.len - skip];
-}
+const unique = aoc.unique;
 
 fn countIntersects(xs: []const i32, x_pnts: []const std.ArrayList(i32), x: i32, y1: i32, y2: i32) usize {
     const i = std.sort.binarySearch(i32, xs, x, cmpI32).?;

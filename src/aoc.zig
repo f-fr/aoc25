@@ -585,6 +585,17 @@ pub fn trim(s: []const u8) []const u8 {
     return std.mem.trim(u8, s, " \t\r\n");
 }
 
+pub fn unique(comptime T: type, items: []T) []T {
+    var skip: usize = 0;
+    for (1..items.len) |i| {
+        if (items[i] == items[i - 1])
+            skip += 1
+        else
+            items[i - skip] = items[i];
+    }
+    return items[0 .. items.len - skip];
+}
+
 fn genSplitN(comptime N: usize, s: []const u8, separator: []const u8, comptime tokenize: anytype) ![N][]const u8 {
     if (N == 1) return .{s};
 
