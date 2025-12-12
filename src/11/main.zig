@@ -7,26 +7,34 @@ pub fn run(alloc: std.mem.Allocator, lines: *aoc.Lines) ![2]u64 {
     defer arena.deinit();
     const a = arena.allocator();
 
-    var names = aoc.NamesBag(u32).init(a);
-    var out_neighs: std.ArrayList(std.ArrayList(u32)) = .empty;
-
+    var names = aoc.NamesBag(u16).init(a);
+    var edge_info: std.ArrayList(u16) = .empty;
     while (try lines.next()) |line| {
         var toks = std.mem.tokenizeAny(u8, line, ": ");
         const u = try names.getOrPut(toks.next() orelse continue);
-        while (u >= out_neighs.items.len) try out_neighs.append(a, .empty);
-        while (toks.next()) |tok| {
-            const v = try names.getOrPut(tok);
-            try out_neighs.items[u].append(a, v);
+        try edge_info.append(a, u);
+        while (toks.next()) |tok| try edge_info.append(a, try names.getOrPut(tok));
+        // add separator
+        try edge_info.append(a, std.math.maxInt(u16));
+    }
+    const n = names.count();
+    // all out adjacency lists are slices of `edges`
+    var out_neighs = try a.alloc([]const u16, n);
+    @memset(out_neighs, &[_]u16{});
+    {
+        var i: usize = 0;
+        while (i < edge_info.items.len) {
+            const j = std.mem.findScalarPos(u16, edge_info.items, i, std.math.maxInt(u16)).?;
+            const u = edge_info.items[i];
+            out_neighs[u] = edge_info.items[i + 1 .. j];
+            i = j + 1;
         }
     }
 
-    const n = names.count();
-    while (out_neighs.items.len < n) try out_neighs.append(a, .empty);
-
     var degrees = try a.alloc(usize, n);
     @memset(degrees, 0);
-    for (out_neighs.items) |outs| {
-        for (outs.items) |v| degrees[v] += 1;
+    for (out_neighs) |outs| {
+        for (outs) |v| degrees[v] += 1;
     }
 
     // top sort
@@ -39,7 +47,7 @@ pub fn run(alloc: std.mem.Allocator, lines: *aoc.Lines) ![2]u64 {
         var top_order: std.ArrayList(u32) = .empty;
         while (q.popFront()) |u| {
             try top_order.append(a, u);
-            for (out_neighs.items[u].items) |v| {
+            for (out_neighs[u]) |v| {
                 degrees[v] -= 1;
                 if (degrees[v] == 0) try q.pushBack(a, v);
             }
@@ -54,7 +62,7 @@ pub fn run(alloc: std.mem.Allocator, lines: *aoc.Lines) ![2]u64 {
         @memset(cnts, 0);
         cnts[you] = 1;
         for (top_order) |u| {
-            for (out_neighs.items[u].items) |v| cnts[v] += cnts[u];
+            for (out_neighs[u]) |v| cnts[v] += cnts[u];
         }
         score1 = cnts[out];
     }
@@ -71,7 +79,7 @@ pub fn run(alloc: std.mem.Allocator, lines: *aoc.Lines) ![2]u64 {
             @memset(cnts, 0);
             cnts[st[0]] = 1;
             for (top_order) |u| {
-                for (out_neighs.items[u].items) |v| cnts[v] += cnts[u];
+                for (out_neighs[u]) |v| cnts[v] += cnts[u];
             }
             score2 *= cnts[st[1]];
         }
