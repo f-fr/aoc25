@@ -7,6 +7,9 @@ pub fn run(alloc: std.mem.Allocator, lines: *aoc.Lines) ![2]u64 {
     defer arena.deinit();
     const a = arena.allocator();
 
+    var io: std.Io.Threaded = .init_single_threaded;
+    defer io.deinit();
+
     var score1: u64 = 0;
     var iter: usize = 0;
     while (try lines.next()) |line| {
@@ -60,9 +63,10 @@ pub fn run(alloc: std.mem.Allocator, lines: *aoc.Lines) ![2]u64 {
         iter += 1;
         const filename = try std.fmt.allocPrint(a, "m{}.zpl", .{iter});
         defer a.free(filename);
-        var file = try std.fs.cwd().createFile(filename, .{});
+        var file = try std.Io.Dir.cwd().createFile(io.io(), filename, .{});
+        defer file.close(io.io());
         var buf: [1024]u8 = undefined;
-        var writer = file.writer(&buf);
+        var writer = file.writer(io.io(), &buf);
         var w = &writer.interface;
         try w.print("set I := {{1 .. {}}};\n", .{buttons.items.len});
         _ = try w.write("var X[I] integer >= 0;\n");
@@ -76,7 +80,6 @@ pub fn run(alloc: std.mem.Allocator, lines: *aoc.Lines) ![2]u64 {
             try w.print(" == {};\n", .{j_level});
         }
         try w.flush();
-        file.close();
     }
 
     return .{ score1, 0 };

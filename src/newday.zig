@@ -24,7 +24,7 @@ pub fn main() !void {
     var allocator: std.heap.GeneralPurposeAllocator(.{}) = .init;
     const gpa = allocator.allocator();
 
-    var threaded: Io.Threaded = .init(gpa);
+    var threaded: Io.Threaded = .init(gpa, .{});
     defer threaded.deinit();
     const io = threaded.io();
 
@@ -75,15 +75,15 @@ fn downloadInput(gpa: Allocator, io: Io, day: u32) !void {
     }
 
     // create input/XX/input1.txt
-    try Io.Dir.cwd().makePath(io, try std.fmt.bufPrint(&buffer, "input/{:02}", .{day}));
+    try Io.Dir.cwd().createDirPath(io, try std.fmt.bufPrint(&buffer, "input/{:02}", .{day}));
     const filename = try std.fmt.bufPrint(&buffer, "input/{:02}/input1.txt", .{day});
-    var file = try std.fs.cwd().createFile(filename, .{ .truncate = true });
-    defer file.close();
+    var file = try std.Io.Dir.cwd().createFile(io, filename, .{ .truncate = true });
+    defer file.close(io);
 
     std.log.info("Downloaded input file to {s}", .{filename});
 
     // save downloaded file
-    var file_writer = file.writer(&buffer);
+    var file_writer = file.writer(io, &buffer);
     defer file_writer.interface.flush() catch {};
     var reader = Io.Reader.fixed(tmp_writer.written());
     _ = try reader.streamRemaining(&file_writer.interface);
@@ -94,7 +94,7 @@ fn createMainFromTemplate(io: Io, day: u32) !void {
     const cwd = Io.Dir.cwd();
 
     // create a new template
-    try cwd.makePath(io, try std.fmt.bufPrint(&buffer, "src/{:02}", .{day}));
+    try cwd.createDirPath(io, try std.fmt.bufPrint(&buffer, "src/{:02}", .{day}));
 
     // hopefully the template is not larger than 4k
     const content = try cwd.readFile(io, "src/template_main.zig", &buffer);
@@ -107,8 +107,7 @@ fn createMainFromTemplate(io: Io, day: u32) !void {
     const replaced_content = replaced_buffer[0 .. content.len - n * (3 - day_str.len)];
 
     const filename = try std.fmt.bufPrint(&buffer, "src/{:02}/main.zig", .{day});
-    // TODO: currently there is compile error if using std.Io.Dir.cwd().writeFile
-    std.fs.cwd().writeFile(.{
+    std.Io.Dir.cwd().writeFile(io, .{
         .sub_path = filename,
         .flags = .{ .truncate = false, .exclusive = true },
         .data = replaced_content,

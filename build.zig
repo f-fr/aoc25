@@ -71,18 +71,22 @@ pub fn build(b: *std.Build) !void {
     var mains: std.ArrayList(Main) = .empty;
     defer mains.deinit(b.allocator);
 
-    var dir = try std.fs.openDirAbsolute(b.pathFromRoot("src"), .{ .iterate = true });
-    defer dir.close();
+    var io_threaded: std.Io.Threaded = .init_single_threaded;
+    defer io_threaded.deinit();
+    const io = io_threaded.io();
+
+    var dir = try std.Io.Dir.openDirAbsolute(io, b.pathFromRoot("src"), .{ .iterate = true });
+    defer dir.close(io);
     var dir_it = dir.iterate();
-    while (try dir_it.next()) |d| {
+    while (try dir_it.next(io)) |d| {
         if (d.kind != .directory or d.name.len > 2) continue;
         const day = std.fmt.parseInt(u8, d.name, 10) catch continue;
         if (day < 0 or day > 25) continue;
 
-        var day_dir = try dir.openDir(d.name, .{ .iterate = true });
-        defer day_dir.close();
+        var day_dir = try dir.openDir(io, d.name, .{ .iterate = true });
+        defer day_dir.close(io);
         var day_it = day_dir.iterate();
-        while (try day_it.next()) |main| {
+        while (try day_it.next(io)) |main| {
             if (main.kind != .file) continue;
             if (!std.mem.startsWith(u8, main.name, "main")) continue;
             if (!std.mem.endsWith(u8, main.name, ".zig")) continue;

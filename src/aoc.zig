@@ -472,11 +472,13 @@ pub fn getInstanceFileName(buf: []u8, instance: ?usize) ![]u8 {
 
 pub fn run(name: []const u8, comptime runfn: anytype) !void {
     info("AoC23 - day {s}", .{name});
+    var io: std.Io.Threaded = std.Io.Threaded.init_single_threaded;
+    defer io.deinit();
+
     var buffer: [64 * 1024]u8 = undefined;
     const filename = try getInstanceFileName(&buffer, null);
-    var file = try std.fs.cwd().openFile(filename, .{ .mode = .read_only });
-    defer file.close();
-    var io: std.Io.Threaded = std.Io.Threaded.init_single_threaded;
+    var file = try std.Io.Dir.cwd().openFile(io.io(), filename, .{ .mode = .read_only });
+    defer file.close(io.io());
     var reader = file.reader(io.io(), &buffer);
     try reader.interface.fillMore();
     var lines = Lines.init(&reader.interface);
@@ -548,9 +550,11 @@ pub fn run_times(comptime days: anytype) !void {
     var timer = try std.time.Timer.start();
     var buffer: [4096]u8 = undefined;
     var io: std.Io.Threaded = std.Io.Threaded.init_single_threaded;
+    defer io.deinit();
+
     inline for (days) |day| {
-        var file = try std.fs.cwd().openFile(day.filename, .{ .mode = .read_only });
-        defer file.close();
+        var file = try std.Io.Dir.cwd().openFile(io.io(), day.filename, .{ .mode = .read_only });
+        defer file.close(io.io());
         var reader = file.reader(io.io(), &buffer);
         var lines = Lines.init(&reader.interface);
 

@@ -113,6 +113,9 @@ pub fn run(alloc: std.mem.Allocator, lines: *aoc.Lines) ![2]u64 {
         rtiles.* = result;
     }
 
+    var io: std.Io.Threaded = .init_single_threaded;
+    defer io.deinit();
+
     var n_feasible: usize = 0;
     var n_infeasible: usize = 0;
     for (sqrs.items, 1..) |sqr, sqr_idx| {
@@ -134,10 +137,11 @@ pub fn run(alloc: std.mem.Allocator, lines: *aoc.Lines) ![2]u64 {
 
         const filename = try std.fmt.allocPrint(a, "sqr{}.zpl", .{sqr_idx});
         defer a.free(filename);
-        var file = try std.fs.cwd().createFile(filename, .{});
-        defer file.close();
+
+        var file = try std.Io.Dir.cwd().createFile(io.io(), filename, .{});
+        defer file.close(io.io());
         var buf: [1024]u8 = undefined;
-        var writer = file.writer(&buf);
+        var writer = file.writer(io.io(), &buf);
         var wr = &writer.interface;
         defer wr.flush() catch {};
 
