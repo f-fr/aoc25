@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Frank Fischer <frank-fischer@shadow-soft.de>
+// Copyright (c) 2025-2026 Frank Fischer <frank-fischer@shadow-soft.de>
 //
 // This program is free software: you can redistribute it and/or
 // modify it under the terms of the GNU General Public License as
@@ -20,23 +20,19 @@ const Io = std.Io;
 
 const YEAR: u32 = 2025;
 
-pub fn main() !void {
-    var allocator: std.heap.GeneralPurposeAllocator(.{}) = .init;
-    const gpa = allocator.allocator();
+pub fn main(init: std.process.Init) !void {
+    const gpa = init.gpa;
+    const io = init.io;
 
-    var threaded: Io.Threaded = .init(gpa, .{});
-    defer threaded.deinit();
-    const io = threaded.io();
+    var args = init.minimal.args.iterate();
+    const program_name = args.next().?;
 
-    const args = try std.process.argsAlloc(gpa);
-    defer std.process.argsFree(gpa, args);
-
-    if (args.len < 2) {
-        std.debug.print("Usage: newday DAY\n", .{});
+    const day_str = args.next() orelse {
+        std.debug.print("Usage: {s} DAY\n", .{program_name});
         return;
-    }
+    };
 
-    const day = try std.fmt.parseInt(u32, args[1], 10);
+    const day = try std.fmt.parseInt(u32, day_str, 10);
 
     if (day < 1 or day > 25) return error.DayOutOfBounds;
 

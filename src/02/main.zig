@@ -4,10 +4,10 @@ const aoc = @import("aoc");
 
 pub const run = @import("./run.zig").run;
 
-pub fn main() !void {
+pub fn main(init: std.process.Init.Minimal) !void {
     var buffer: [2]u8 = undefined;
-    const name = try std.fmt.bufPrint(&buffer, "{:02}", .{2});
-    return aoc.run(name, run);
+    const name = try std.fmt.bufPrint(&buffer, "{:02}", .{9});
+    return aoc.run(name, init.args.iterate(), run);
 }
 
 test "Day 2 part 1" {

@@ -17,10 +17,10 @@ pub fn run(alloc: std.mem.Allocator, lines: *aoc.Lines) ![2]u64 {
     return .{ 0, 0 };
 }
 
-pub fn main() !void {
+pub fn main(init: std.process.Init.Minimal) !void {
     var buffer: [2]u8 = undefined;
-    const name = try std.fmt.bufPrint(&buffer, "{:02}", .{DAY});
-    return aoc.run(name, run);
+    const name = try std.fmt.bufPrint(&buffer, "{:02}", .{9});
+    return aoc.run(name, init.args.iterate(), run);
 }
 
 test "Day DAY part 1" {

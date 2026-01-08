@@ -190,10 +190,10 @@ pub fn run(alloc: std.mem.Allocator, lines: *aoc.Lines) ![2]u64 {
     return .{ n_feasible, 0 };
 }
 
-pub fn main() !void {
+pub fn main(init: std.process.Init.Minimal) !void {
     var buffer: [2]u8 = undefined;
-    const name = try std.fmt.bufPrint(&buffer, "{:02}", .{12});
-    return aoc.run(name, run);
+    const name = try std.fmt.bufPrint(&buffer, "{:02}", .{9});
+    return aoc.run(name, init.args.iterate(), run);
 }
 
 test "Day 12 part 1" {

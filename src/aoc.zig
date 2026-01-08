@@ -455,8 +455,8 @@ test "readNextGridFilled with lines getting shorter" {
     try testing.expectEqualSlices(u8, "90a..", g.row(2));
 }
 
-pub fn getInstanceFileName(buf: []u8, instance: ?usize) ![]u8 {
-    var args = std.process.args();
+pub fn getInstanceFileName(buf: []u8, argsIt: std.process.Args.Iterator, instance: ?usize) ![]u8 {
+    var args = argsIt;
     const program = args.next() orelse return Err.MissingProgramName;
     const end = std.mem.indexOfScalar(u8, program, '_') orelse program.len;
     const day = std.fmt.parseInt(u8, std.fs.path.basename(program[0..end]), 10) catch return Err.InvalidProgramName;
@@ -470,13 +470,13 @@ pub fn getInstanceFileName(buf: []u8, instance: ?usize) ![]u8 {
     return std.fmt.bufPrint(buf, "input/{d:0>2}/input{}.txt", .{ day, inst });
 }
 
-pub fn run(name: []const u8, comptime runfn: anytype) !void {
+pub fn run(name: []const u8, args: std.process.Args.Iterator, comptime runfn: anytype) !void {
     info("AoC23 - day {s}", .{name});
     var io: std.Io.Threaded = std.Io.Threaded.init_single_threaded;
     defer io.deinit();
 
     var buffer: [64 * 1024]u8 = undefined;
-    const filename = try getInstanceFileName(&buffer, null);
+    const filename = try getInstanceFileName(&buffer, args, null);
     var file = try std.Io.Dir.cwd().openFile(io.io(), filename, .{ .mode = .read_only });
     defer file.close(io.io());
     var reader = file.reader(io.io(), &buffer);
