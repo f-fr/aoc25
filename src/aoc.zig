@@ -482,13 +482,13 @@ pub fn run(name: []const u8, args: std.process.Args.Iterator, comptime runfn: an
     var reader = file.reader(io.io(), &buffer);
     try reader.interface.fillMore();
     var lines = Lines.init(&reader.interface);
-    var timer = try std.time.Timer.start();
+    var timer = std.Io.Clock.real.now(io.io());
     const scores = try runfn(allocator, &lines);
-    const t_end = timer.lap();
+    const t_end = timer.durationTo(std.Io.Clock.real.now(io.io())).toMilliseconds();
 
     println("Part 1: {}", .{scores[0]});
     println("Part 2: {}", .{scores[1]});
-    println("Time  : {d:.3}", .{@as(f64, @floatFromInt(t_end)) / 1e9});
+    println("Time  : {d:.3}", .{@as(f64, @floatFromInt(t_end)) / 1000});
 }
 
 fn run_test(runfunc: anytype, reader: *std.Io.Reader, part: u8, both_parts: bool) !void {
@@ -544,12 +544,12 @@ pub fn run_tests(runfunc: anytype, day: u8, part: u8) !void {
 }
 
 pub fn run_times(comptime days: anytype) !void {
+    var io: std.Io.Threaded = std.Io.Threaded.init_single_threaded;
     var t_total: f64 = 0;
     var t_day: f64 = 0;
     var cur_day: usize = 0;
-    var timer = try std.time.Timer.start();
+    var timer = std.Io.Clock.real.now(io.io());
     var buffer: [4096]u8 = undefined;
-    var io: std.Io.Threaded = std.Io.Threaded.init_single_threaded;
     defer io.deinit();
 
     inline for (days) |day| {
@@ -558,10 +558,10 @@ pub fn run_times(comptime days: anytype) !void {
         var reader = file.reader(io.io(), &buffer);
         var lines = Lines.init(&reader.interface);
 
-        timer.reset();
+        timer = std.Io.Clock.real.now(io.io());
         const s = try day.run(allocator, &lines);
-        const t_end = timer.lap();
-        const t = @as(f64, @floatFromInt(t_end)) / 1e9;
+        const t_end = timer.durationTo(std.Io.Clock.real.now(io.io())).toMilliseconds();
+        const t = @as(f64, @floatFromInt(t_end)) / 1000;
         if (cur_day != day.day) {
             t_total += t_day;
             t_day = t;
