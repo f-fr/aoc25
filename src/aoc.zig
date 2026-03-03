@@ -521,10 +521,10 @@ pub fn run_tests(runfunc: anytype, day: u8, part: u8) !void {
     var buffer: [1024]u8 = undefined;
     const path = try std.fmt.bufPrint(&buffer, "input/{:02}", .{day});
 
-    var dir = try std.fs.cwd().openDir(path, .{ .iterate = true });
-    defer dir.close();
+    var dir = try std.Io.Dir.cwd().openDir(io, path, .{ .iterate = true });
+    defer dir.close(io);
     var dir_it = dir.iterate();
-    while (try dir_it.next()) |d| {
+    while (try dir_it.next(io)) |d| {
         if (std.mem.startsWith(u8, d.name, "test") and std.mem.endsWith(u8, d.name, ".txt")) {
             var both_parts = true;
             if (std.mem.startsWith(u8, d.name[4..], "_part")) {
@@ -535,8 +535,8 @@ pub fn run_tests(runfunc: anytype, day: u8, part: u8) !void {
                 both_parts = false;
             }
             // run this test case
-            var file = try dir.openFile(d.name, .{ .mode = .read_only });
-            defer file.close();
+            var file = try dir.openFile(io, d.name, .{ .mode = .read_only });
+            defer file.close(io);
             var reader = file.reader(io, &buffer);
             try run_test(runfunc, &reader.interface, part, both_parts);
         }
