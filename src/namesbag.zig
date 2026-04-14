@@ -46,7 +46,7 @@ pub fn NamesBag(comptime T: type) type {
         /// If the name is not contained in the bag, it is added
         /// and assigned the next index.
         pub fn getOrPut(self: *Self, name: []const u8) !T {
-            var entry = try self.names.getOrPutAdapted(self.allocator, name, std.hash_map.StringContext{});
+            const entry = try self.names.getOrPutAdapted(self.allocator, name, std.hash_map.StringContext{});
             if (!entry.found_existing) {
                 const new_idx: T = @intCast(self.names_by_index.items.len);
                 const new_name = try self.allocator.dupe(u8, name);

@@ -58,7 +58,7 @@ fn downloadInput(gpa: Allocator, io: Io, day: u32) !void {
     defer tmp_writer.deinit();
 
     var buffer: [4096]u8 = undefined;
-    var result = try http_client.fetch(
+    const result = try http_client.fetch(
         .{
             .location = .{ .url = try std.fmt.bufPrint(&buffer, "https://adventofcode.com/{}/day/{}/input", .{ YEAR, day }) },
             .extra_headers = &[_]std.http.Header{.{ .name = "Cookie", .value = session }},

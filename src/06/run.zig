@@ -8,7 +8,7 @@ pub fn run(alloc: std.mem.Allocator, lines: *aoc.Lines) ![2]u64 {
 
     var g = try lines.readGridFilled(a, ' ');
 
-    var ops = try aoc.splitA(a, g.row(g.n - 1), " ");
+    const ops = try aoc.splitA(a, g.row(g.n - 1), " ");
     // ignore last row
     g.n -= 1;
 
@@ -37,14 +37,12 @@ pub fn run(alloc: std.mem.Allocator, lines: *aoc.Lines) ![2]u64 {
 
     var score2: u64 = 0;
     while (j < ops.len) : (j += 1) {
-
         if (ops[ops.len - j - 1][0] == '+') {
             var s: u64 = 0;
             while (i < g2.n) : (i += 1) {
                 s += aoc.toNum(u32, g2.row(i)) catch break;
             }
             score2 += s;
-
         } else {
             var p: u64 = 1;
             while (i < g2.n) : (i += 1) {
