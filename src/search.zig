@@ -153,7 +153,7 @@ test "simple undirected" {
     var search = Search(Graph).init(testing.allocator, &g);
     defer search.deinit();
     try search.start('s');
-    var preds = [1]?u8{null} ** 256;
+    var preds: [256]?u8 = @splat(null);
     while (try search.next()) |nxt| {
         preds[nxt.node] = nxt.pred;
     }
@@ -189,12 +189,12 @@ test "lattice graph" {
                 const u = self.src;
                 const v =
                     switch (self.dir) {
-                    1 => Node{ .x = u.x - 1, .y = u.y },
-                    2 => Node{ .x = u.x, .y = u.y - 1 },
-                    3 => Node{ .x = u.x + 1, .y = u.y },
-                    4 => Node{ .x = u.x, .y = u.y + 1 },
-                    else => unreachable,
-                };
+                        1 => Node{ .x = u.x - 1, .y = u.y },
+                        2 => Node{ .x = u.x, .y = u.y - 1 },
+                        3 => Node{ .x = u.x + 1, .y = u.y },
+                        4 => Node{ .x = u.x, .y = u.y + 1 },
+                        else => unreachable,
+                    };
                 const e = if (self.dir <= 2) .{ v, u } else .{ u, v };
                 var d: Value = 2;
                 for (Special) |f| {
@@ -223,7 +223,7 @@ test "lattice graph" {
     defer search.deinit();
     try search.start(s);
 
-    var preds = [1][12]?Nd{[1]?Nd{null} ** 12} ** 12;
+    var preds: [12][12]?Nd = @splat(@splat(null));
 
     while (try search.next()) |nxt| {
         try testing.expect(nxt.node.x >= @min(s.x, t.x) - @as(i32, 1));

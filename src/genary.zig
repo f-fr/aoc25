@@ -5,7 +5,7 @@ pub fn GenArray(comptime T: type, comptime N: usize) type {
         const Self = @This();
 
         data: [N]T = undefined,
-        gens: [N]usize = .{0} ** N,
+        gens: [N]usize = @splat(0),
         generation: usize = 1,
         actives: [N]usize = undefined,
         nactives: usize = 0,
